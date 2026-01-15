@@ -23,10 +23,10 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       {
-        url: "/logo-koneex-new.png",
+        url: "/tucan-icon.png",
       },
     ],
-    apple: "/logo-koneex-new.png",
+    apple: "/tucan-icon.png",
   },
 }
 
