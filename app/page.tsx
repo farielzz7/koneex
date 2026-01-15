@@ -56,8 +56,7 @@ export default function Home() {
               Bienvenido a <span className="text-gradient">koneex</span>
             </h1>
             <p className="text-lg md:text-xl text-text-muted mb-6 leading-relaxed">
-              Tu agencia de viajes de confianza. Hacemos realidad tus sueños de viajar con paquetes personalizados,
-              precios accesibles y atención excepcional las 24 horas.
+              Tu agencia de viajes de confianza. Hacemos realidad tus sueños de viajar con paquetes personalizados, atención excepcional.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
@@ -336,7 +335,7 @@ export default function Home() {
                 <div className="w-20 h-20 rounded-full bg-accent/10 flex items-center justify-center mx-auto mb-4">
                   <MessageCircle className="w-10 h-10 text-accent" />
                 </div>
-                <h3 className="font-bold text-lg mb-2">Atención 24/7</h3>
+                <h3 className="font-bold text-lg mb-2">Atención</h3>
                 <p className="text-text-muted text-sm">Estamos contigo en cada momento de tu viaje vía WhatsApp</p>
               </motion.div>
 
@@ -354,19 +353,6 @@ export default function Home() {
                 <p className="text-text-muted text-sm">Múltiples opciones: tarjeta, transferencia, efectivo y más</p>
               </motion.div>
 
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.3 }}
-                className="text-center"
-              >
-                <div className="w-20 h-20 rounded-full bg-secondary/10 flex items-center justify-center mx-auto mb-4">
-                  <TrendingUp className="w-10 h-10 text-secondary" />
-                </div>
-                <h3 className="font-bold text-lg mb-2">Mejor Precio Garantizado</h3>
-                <p className="text-text-muted text-sm">Encuentra un precio menor y lo igualamos o mejoramos</p>
-              </motion.div>
             </div>
           </motion.div>
         </div>

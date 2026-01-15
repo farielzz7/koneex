@@ -365,7 +365,7 @@ export default function CotizacionPage() {
                 <Users className="w-7 h-7 text-white" />
               </div>
               <h3 className="font-bold text-lg mb-2">Asesoría Experta</h3>
-              <p className="text-sm text-text-muted">Atención personalizada 24/7</p>
+              <p className="text-sm text-text-muted">Atención personalizada</p>
             </Card>
           </div>
         </div>

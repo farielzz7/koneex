@@ -156,7 +156,7 @@ export default function AsesoramientoPage() {
               <div className="w-14 h-14 bg-gradient-to-br from-accent to-primary rounded-full flex items-center justify-center mx-auto mb-3">
                 <MessageCircle className="w-7 h-7 text-white" />
               </div>
-              <h3 className="font-bold text-lg mb-2">Atención 24/7</h3>
+              <h3 className="font-bold text-lg mb-2">Atención</h3>
               <p className="text-sm text-text-muted">Disponibles por WhatsApp en todo momento</p>
             </Card>
 

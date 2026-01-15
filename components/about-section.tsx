@@ -182,10 +182,6 @@ export function AboutSection() {
                             <div className="text-3xl md:text-4xl lg:text-5xl font-bold mb-1 md:mb-2">100%</div>
                             <div className="text-xs md:text-sm lg:text-base opacity-90">Servicio Personalizado</div>
                         </div>
-                        <div>
-                            <div className="text-3xl md:text-4xl lg:text-5xl font-bold mb-1 md:mb-2">24/7</div>
-                            <div className="text-xs md:text-sm lg:text-base opacity-90">Atención al Cliente</div>
-                        </div>
                     </div>
                 </motion.div>
             </div>
