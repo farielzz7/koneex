@@ -19,8 +19,8 @@ export function Logo({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
       transition={{ type: "spring", stiffness: 400, damping: 10 }}
     >
       <Image
-        src="/logob.png"
-        alt="koneex Agencia de Viajes"
+        src="/logo-koneex-new.png"
+        alt="Koneex Travel Logo"
         width={currentSize.width}
         height={currentSize.height}
         className="object-contain"
