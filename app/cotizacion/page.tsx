@@ -352,20 +352,20 @@ export default function CotizacionPage() {
               <p className="text-sm text-text-muted">Te atendemos por WhatsApp al instante</p>
             </Card>
 
-            <Card className="text-center p-6 border-2 hover:border-warning transition-all hover:shadow-lg">
-              <div className="w-14 h-14 bg-gradient-to-br from-warning to-secondary rounded-full flex items-center justify-center mx-auto mb-3">
-                <Sparkles className="w-7 h-7 text-white" />
-              </div>
-              <h3 className="font-bold text-lg mb-2">Mejor Precio</h3>
-              <p className="text-sm text-text-muted">Garantía de mejor tarifa</p>
-            </Card>
-
             <Card className="text-center p-6 border-2 hover:border-accent transition-all hover:shadow-lg">
               <div className="w-14 h-14 bg-gradient-to-br from-accent to-danger rounded-full flex items-center justify-center mx-auto mb-3">
                 <Users className="w-7 h-7 text-white" />
               </div>
               <h3 className="font-bold text-lg mb-2">Asesoría Experta</h3>
               <p className="text-sm text-text-muted">Atención personalizada</p>
+            </Card>
+
+            <Card className="text-center p-6 border-2 hover:border-warning transition-all hover:shadow-lg">
+              <div className="w-14 h-14 bg-gradient-to-br from-warning to-secondary rounded-full flex items-center justify-center mx-auto mb-3">
+                <Sparkles className="w-7 h-7 text-white" />
+              </div>
+              <h3 className="font-bold text-lg mb-2">Sin Costos Ocultos</h3>
+              <p className="text-sm text-text-muted">Preparación de presupuesto claro y transparente</p>
             </Card>
           </div>
         </div>

@@ -5,7 +5,7 @@ import { SearchHero } from "@/components/search-hero"
 import { PackageCard } from "@/components/package-card"
 import { OffersCarousel } from "@/components/offers-carousel"
 import { ExperiencesCarousel } from "@/components/experiences-carousel"
-import { InstallPWAPrompt } from "@/components/install-pwa-prompt"
+
 import { Footer } from "@/components/footer"
 import { AboutSection } from "@/components/about-section"
 import {
@@ -309,7 +309,7 @@ export default function Home() {
               <p className="text-lg text-text-muted">Somos tu mejor opción para vivir experiencias inolvidables</p>
             </div>
 
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div className="grid md:grid-cols-3 gap-8">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -451,7 +451,7 @@ export default function Home() {
         </div>
       </section>
 
-      <InstallPWAPrompt />
+
       <Footer />
     </div>
   )
