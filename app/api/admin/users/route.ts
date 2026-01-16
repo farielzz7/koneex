@@ -8,10 +8,7 @@ export async function GET() {
         const { data: users, error } = await supabase
             .from('users')
             .select(`
-                *,
-                agencies (
-                    name
-                )
+                *
             `)
             .order('registered_at', { ascending: false })
 

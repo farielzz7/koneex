@@ -1,28 +1,24 @@
 -- ============================================================
--- POSTGRESQL: RESET TOTAL + ESQUEMA COMPLETO CORREGIDO
+-- POSTGRESQL: RESET TOTAL + ESQUEMA SINGLE-TENANT (SIN AGENCIAS)
 -- Incluye:
---  - IDs SECUENCIALES (BIGSERIAL) en todas las tablas
---  - FOLIO/CLAVE DE COMPRA AUTOGENERADA (orders.order_number)
---  - Estructura completa MegaTravel-friendly
---  - Índices clave
---  - Trigger para updated_at en todas las tablas con esa columna
+--  - Eliminación de tabla 'agencies' (Modelo de Agencia Única)
+--  - IDs SECUENCIALES (BIGSERIAL)
+--  - FOLIO AUTOGENERADO (orders.order_number)
+--  - Estructura optimizada y "legalizada" (datos fiscales en settings)
 -- ============================================================
 
 BEGIN;
 
 -- ============================================================
--- 0) BORRADO TOTAL DEL ESQUEMA PUBLIC (TODO)
+-- 0) BORRADO TOTAL DEL ESQUEMA PUBLIC
 -- ============================================================
 DO $$
 DECLARE
   r RECORD;
 BEGIN
-  -- Drop all tables
   FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = 'public') LOOP
     EXECUTE format('DROP TABLE IF EXISTS public.%I CASCADE;', r.tablename);
   END LOOP;
-
-  -- Drop all enum types created in public
   FOR r IN (
     SELECT t.typname
     FROM pg_type t
@@ -31,19 +27,10 @@ BEGIN
   ) LOOP
     EXECUTE format('DROP TYPE IF EXISTS public.%I CASCADE;', r.typname);
   END LOOP;
-
-  -- Drop sequences (optional, usually dropped by CASCADE, but kept safe)
-  FOR r IN (
-    SELECT sequence_name
-    FROM information_schema.sequences
-    WHERE sequence_schema = 'public'
-  ) LOOP
-    EXECUTE format('DROP SEQUENCE IF EXISTS public.%I CASCADE;', r.sequence_name);
-  END LOOP;
 END $$;
 
 -- ============================================================
--- 1) EXTENSIONES (si tu entorno lo permite)
+-- 1) EXTENSIONES
 -- ============================================================
 CREATE EXTENSION IF NOT EXISTS citext;
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
@@ -51,49 +38,43 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 -- ============================================================
 -- 2) ENUM TYPES
 -- ============================================================
-DO $$ BEGIN CREATE TYPE tag_type AS ENUM ('CATEGORY','THEME','AUDIENCE','BADGE','AMENITY','OTHER'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+-- Tipos generales
+CREATE TYPE tag_type AS ENUM ('CATEGORY','THEME','AUDIENCE','BADGE','AMENITY','OTHER');
+CREATE TYPE pricing_model AS ENUM ('PUBLIC_ONLY','NET_WITH_COMMISSION','MARGIN_MARKUP');
+CREATE TYPE user_role AS ENUM ('ADMIN','AGENT','CUSTOMER','SUPPORT'); -- Eliminado AGENCY_ADMIN
+CREATE TYPE user_status AS ENUM ('ACTIVE','BLOCKED');
 
-DO $$ BEGIN CREATE TYPE agency_status AS ENUM ('ACTIVE','SUSPENDED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-DO $$ BEGIN CREATE TYPE pricing_model AS ENUM ('PUBLIC_ONLY','NET_WITH_COMMISSION','MARGIN_MARKUP'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+-- Proveedores
+CREATE TYPE provider_type AS ENUM ('WHOLESALER','OPERATOR','HOTEL','AIRLINE','OTHER');
+CREATE TYPE integration_mode AS ENUM ('MANUAL','CSV','API');
+CREATE TYPE provider_status AS ENUM ('ACTIVE','INACTIVE');
+CREATE TYPE sync_status AS ENUM ('RUNNING','SUCCESS','FAILED','PARTIAL');
 
-DO $$ BEGIN CREATE TYPE user_role AS ENUM ('ADMIN','AGENCY_ADMIN','AGENT','CUSTOMER','SUPPORT'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-DO $$ BEGIN CREATE TYPE user_status AS ENUM ('ACTIVE','BLOCKED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+-- Paquetes
+CREATE TYPE package_type AS ENUM ('CIRCUIT','HOTEL_PACKAGE','EXPERIENCE','TRANSFER','DYNAMIC');
+CREATE TYPE package_status AS ENUM ('DRAFT','PUBLISHED','PAUSED');
+CREATE TYPE confirmation_mode AS ENUM ('INSTANT','ON_REQUEST');
+CREATE TYPE media_type AS ENUM ('IMAGE','VIDEO');
+CREATE TYPE component_type AS ENUM ('HOTEL','FLIGHT','TRANSFER','TOUR','INSURANCE','EXTRA');
+CREATE TYPE occupancy_type AS ENUM ('SGL','DBL','TPL','CPL');
+CREATE TYPE pax_type AS ENUM ('ADULT','CHILD','INFANT');
+CREATE TYPE departure_status AS ENUM ('OPEN','CLOSED','SOLD_OUT');
 
-DO $$ BEGIN CREATE TYPE provider_type AS ENUM ('WHOLESALER','OPERATOR','HOTEL','AIRLINE','OTHER'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-DO $$ BEGIN CREATE TYPE integration_mode AS ENUM ('MANUAL','CSV','API'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-DO $$ BEGIN CREATE TYPE provider_status AS ENUM ('ACTIVE','INACTIVE'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-DO $$ BEGIN CREATE TYPE sync_status AS ENUM ('RUNNING','SUCCESS','FAILED','PARTIAL'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+-- Ordenes y Finanzas
+CREATE TYPE discount_type AS ENUM ('PERCENT','AMOUNT');
+CREATE TYPE order_status AS ENUM ('DRAFT','PENDING_PAYMENT','CONFIRMED','CANCELLED','COMPLETED','REFUNDED');
+CREATE TYPE order_item_type AS ENUM ('PACKAGE','EXTRA','INSURANCE','TRANSFER','TOUR');
+CREATE TYPE payment_provider AS ENUM ('STRIPE','MERCADOPAGO','PAYPAL','BANK_TRANSFER','CASH','OTHER');
+CREATE TYPE payment_status AS ENUM ('PENDING','PAID','FAILED','REFUNDED');
+CREATE TYPE voucher_status AS ENUM ('PENDING','ISSUED','CANCELLED');
 
-DO $$ BEGIN CREATE TYPE package_type AS ENUM ('CIRCUIT','HOTEL_PACKAGE','EXPERIENCE','TRANSFER','DYNAMIC'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-DO $$ BEGIN CREATE TYPE package_status AS ENUM ('DRAFT','PUBLISHED','PAUSED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-DO $$ BEGIN CREATE TYPE confirmation_mode AS ENUM ('INSTANT','ON_REQUEST'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
-DO $$ BEGIN CREATE TYPE media_type AS ENUM ('IMAGE','VIDEO'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-DO $$ BEGIN CREATE TYPE component_type AS ENUM ('HOTEL','FLIGHT','TRANSFER','TOUR','INSURANCE','EXTRA'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
-DO $$ BEGIN CREATE TYPE occupancy_type AS ENUM ('SGL','DBL','TPL','CPL'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-DO $$ BEGIN CREATE TYPE pax_type AS ENUM ('ADULT','CHILD','INFANT'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
-DO $$ BEGIN CREATE TYPE departure_status AS ENUM ('OPEN','CLOSED','SOLD_OUT'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
-DO $$ BEGIN CREATE TYPE discount_type AS ENUM ('PERCENT','AMOUNT'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
-DO $$ BEGIN CREATE TYPE order_status AS ENUM ('DRAFT','PENDING_PAYMENT','CONFIRMED','CANCELLED','COMPLETED','REFUNDED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-DO $$ BEGIN CREATE TYPE order_item_type AS ENUM ('PACKAGE','EXTRA','INSURANCE','TRANSFER','TOUR'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
-DO $$ BEGIN CREATE TYPE gender_type AS ENUM ('M','F','X'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-DO $$ BEGIN CREATE TYPE document_type AS ENUM ('INE','PASSPORT','OTHER'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
-DO $$ BEGIN CREATE TYPE payment_provider AS ENUM ('STRIPE','MERCADOPAGO','PAYPAL','BANK_TRANSFER','CASH','OTHER'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-DO $$ BEGIN CREATE TYPE payment_status AS ENUM ('PENDING','PAID','FAILED','REFUNDED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
-DO $$ BEGIN CREATE TYPE voucher_status AS ENUM ('PENDING','ISSUED','CANCELLED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+-- Personas
+CREATE TYPE gender_type AS ENUM ('M','F','X');
+CREATE TYPE document_type AS ENUM ('INE','PASSPORT','OTHER');
 
 -- ============================================================
--- 3) FUNCIONES: updated_at + order_number
+-- 3) FUNCIONES
 -- ============================================================
-
--- Trigger function to auto-update updated_at
 CREATE OR REPLACE FUNCTION set_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -104,10 +85,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Sequence for order_number folio
+DROP SEQUENCE IF EXISTS order_number_seq CASCADE;
 CREATE SEQUENCE order_number_seq START 1 INCREMENT 1 MINVALUE 1;
 
--- Generates folio like: KX-2026-000001
 CREATE OR REPLACE FUNCTION generate_order_number()
 RETURNS TEXT AS $$
 DECLARE
@@ -121,8 +101,25 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- ============================================================
--- 4) TABLAS CORE / CATALOGOS
+-- 4) TABLAS DE CONFIGURACIÓN Y CATÁLOGOS
 -- ============================================================
+
+-- Configuración de la Empresa (Single Tenancy)
+CREATE TABLE company_settings (
+  id BIGSERIAL PRIMARY KEY,
+  company_name VARCHAR(180) NOT NULL,
+  legal_name VARCHAR(220),
+  rfc VARCHAR(20),
+  email CITEXT,
+  phone VARCHAR(30),
+  website VARCHAR(220),
+  address TEXT,
+  logo_url TEXT,
+  
+  -- Configuraciones globales
+  default_currency CHAR(3) DEFAULT 'MXN',
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 
 CREATE TABLE currencies (
   code CHAR(3) PRIMARY KEY,
@@ -151,8 +148,6 @@ CREATE TABLE cities (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_cities_country ON cities(country_id);
-
 CREATE TABLE tags (
   id BIGSERIAL PRIMARY KEY,
   name VARCHAR(80) NOT NULL,
@@ -162,110 +157,72 @@ CREATE TABLE tags (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_tags_type ON tags(type);
-
 -- ============================================================
--- 5) AGENCIAS + USERS
+-- 5) USUARIOS (SIN AGENCY_ID)
 -- ============================================================
-
-CREATE TABLE agencies (
-  id BIGSERIAL PRIMARY KEY,
-  name VARCHAR(180) NOT NULL,
-  legal_name VARCHAR(220),
-  rfc VARCHAR(20),
-  email CITEXT,
-  phone VARCHAR(30),
-  website VARCHAR(220),
-
-  address_line1 VARCHAR(220),
-  address_line2 VARCHAR(220),
-  city_id BIGINT REFERENCES cities(id),
-  postal_code VARCHAR(15),
-
-  pricing_model pricing_model NOT NULL DEFAULT 'PUBLIC_ONLY',
-  default_commission_pct NUMERIC(5,2) NOT NULL DEFAULT 0,
-  default_markup_amount NUMERIC(12,2) NOT NULL DEFAULT 0,
-
-  status agency_status NOT NULL DEFAULT 'ACTIVE',
-
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  deleted_at TIMESTAMPTZ
-);
-
-CREATE INDEX idx_agencies_status ON agencies(status);
-CREATE INDEX idx_agencies_city ON agencies(city_id);
 
 CREATE TABLE users (
   id BIGSERIAL PRIMARY KEY,
-  agency_id BIGINT REFERENCES agencies(id),
-
+  -- Eliminado agency_id
   email CITEXT NOT NULL UNIQUE,
   password VARCHAR(255),
   name VARCHAR(180) NOT NULL,
   phone VARCHAR(30),
-
+  
   role user_role NOT NULL DEFAULT 'CUSTOMER',
-
+  status user_status NOT NULL DEFAULT 'ACTIVE',
+  
   registered_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   email_verified_at TIMESTAMPTZ,
-
-  status user_status NOT NULL DEFAULT 'ACTIVE',
-
+  
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   deleted_at TIMESTAMPTZ
 );
 
 CREATE INDEX idx_users_role ON users(role);
-CREATE INDEX idx_users_agency ON users(agency_id);
 CREATE INDEX idx_users_status ON users(status);
 
+CREATE TABLE customers (
+  id BIGSERIAL PRIMARY KEY,
+  user_id BIGINT UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+  -- Perfil extendido del cliente
+  first_name VARCHAR(120),
+  last_name VARCHAR(120),
+  birth_date DATE,
+  passport_number VARCHAR(50),
+  passport_expiry DATE,
+  preferences JSONB,
+  
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  deleted_at TIMESTAMPTZ
+);
+
 -- ============================================================
--- 6) PROVEEDORES + SYNC
+-- 6) PROVEEDORES
 -- ============================================================
 
 CREATE TABLE providers (
   id BIGSERIAL PRIMARY KEY,
   name VARCHAR(180) NOT NULL,
   type provider_type NOT NULL DEFAULT 'WHOLESALER',
-
+  
   contact_email CITEXT,
   contact_phone VARCHAR(30),
   website VARCHAR(220),
-
+  
   integration_mode integration_mode NOT NULL DEFAULT 'MANUAL',
   base_url VARCHAR(255),
-  api_key_hint VARCHAR(120),
-
+  
   status provider_status NOT NULL DEFAULT 'ACTIVE',
-
+  
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_providers_type ON providers(type);
-CREATE INDEX idx_providers_status ON providers(status);
-
-CREATE TABLE provider_sync_logs (
-  id BIGSERIAL PRIMARY KEY,
-  provider_id BIGINT NOT NULL REFERENCES providers(id),
-  started_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  ended_at TIMESTAMPTZ,
-  status sync_status NOT NULL DEFAULT 'RUNNING',
-  items_processed INT NOT NULL DEFAULT 0,
-  items_created INT NOT NULL DEFAULT 0,
-  items_updated INT NOT NULL DEFAULT 0,
-  items_failed INT NOT NULL DEFAULT 0,
-  message TEXT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
-CREATE INDEX idx_sync_provider ON provider_sync_logs(provider_id);
-CREATE INDEX idx_sync_status ON provider_sync_logs(status);
-
 -- ============================================================
--- 7) DESTINOS + PAQUETES
+-- 7) DESTINOS Y PAQUETES
 -- ============================================================
 
 CREATE TABLE destinations (
@@ -280,54 +237,33 @@ CREATE TABLE destinations (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_destinations_featured ON destinations(is_featured);
-CREATE INDEX idx_destinations_city ON destinations(city_id);
-
 CREATE TABLE packages (
   id BIGSERIAL PRIMARY KEY,
   provider_id BIGINT REFERENCES providers(id),
-
+  
   slug VARCHAR(220) NOT NULL UNIQUE,
   title VARCHAR(220) NOT NULL,
   subtitle VARCHAR(220),
-
+  
   product_type package_type NOT NULL DEFAULT 'HOTEL_PACKAGE',
-
+  
   short_description VARCHAR(500),
   description TEXT,
-
-  highlights JSONB,
-  includes JSONB,
-  excludes JSONB,
-
+  
   duration_days INT,
   duration_nights INT,
-
+  
   currency_code CHAR(3) NOT NULL REFERENCES currencies(code),
   from_price NUMERIC(12,2) NOT NULL DEFAULT 0,
-
-  starts_at TIMESTAMPTZ,
-  ends_at TIMESTAMPTZ,
-
+  
   status package_status NOT NULL DEFAULT 'DRAFT',
-  confirmation_mode confirmation_mode NOT NULL DEFAULT 'ON_REQUEST',
-  max_people INT,
-  min_age INT,
-
+  
   provider_product_code VARCHAR(120),
-  provider_last_seen_at TIMESTAMPTZ,
-
+  
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   deleted_at TIMESTAMPTZ
 );
-
-CREATE INDEX idx_packages_status ON packages(status);
-CREATE INDEX idx_packages_type ON packages(product_type);
-CREATE INDEX idx_packages_provider ON packages(provider_id);
-CREATE INDEX idx_packages_currency ON packages(currency_code);
-CREATE INDEX idx_packages_dates ON packages(starts_at, ends_at);
-CREATE INDEX idx_packages_provider_code ON packages(provider_product_code);
 
 CREATE TABLE package_destinations (
   package_id BIGINT NOT NULL REFERENCES packages(id) ON DELETE CASCADE,
@@ -336,53 +272,15 @@ CREATE TABLE package_destinations (
   PRIMARY KEY (package_id, destination_id)
 );
 
-CREATE INDEX idx_pkg_dest_primary ON package_destinations(package_id, is_primary);
-
-CREATE TABLE package_tags (
-  package_id BIGINT NOT NULL REFERENCES packages(id) ON DELETE CASCADE,
-  tag_id BIGINT NOT NULL REFERENCES tags(id) ON DELETE RESTRICT,
-  PRIMARY KEY (package_id, tag_id)
-);
-
-CREATE INDEX idx_package_tags_tag ON package_tags(tag_id);
-
--- ============================================================
--- 8) MULTIMEDIA (N IMAGENES + N VIDEOS)
--- ============================================================
-
 CREATE TABLE package_media (
   id BIGSERIAL PRIMARY KEY,
   package_id BIGINT NOT NULL REFERENCES packages(id) ON DELETE CASCADE,
-
   media_type media_type NOT NULL,
   url TEXT NOT NULL,
-  thumbnail_url TEXT,
-
-  caption VARCHAR(220),
-  alt_text VARCHAR(220),
-
-  mime_type VARCHAR(100),
-  size_bytes BIGINT,
-  width INT,
-  height INT,
-  duration_seconds INT,
-
   is_cover BOOLEAN NOT NULL DEFAULT FALSE,
   position INT NOT NULL DEFAULT 0,
-
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  deleted_at TIMESTAMPTZ
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-
-CREATE INDEX idx_media_pkg ON package_media(package_id);
-CREATE INDEX idx_media_type ON package_media(media_type);
-CREATE INDEX idx_media_cover ON package_media(package_id, is_cover);
-CREATE INDEX idx_media_position ON package_media(package_id, position);
-
--- ============================================================
--- 9) ITINERARIO
--- ============================================================
 
 CREATE TABLE package_itinerary_days (
   id BIGSERIAL PRIMARY KEY,
@@ -390,351 +288,50 @@ CREATE TABLE package_itinerary_days (
   day_number INT NOT NULL,
   title VARCHAR(220),
   description TEXT,
-
-  meals_included JSONB,
-  accommodation_text VARCHAR(220),
-
-  included_activities JSONB,
-  optional_activities JSONB,
-
-  notes TEXT,
-
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-
-  UNIQUE (package_id, day_number)
-);
-
-CREATE INDEX idx_itinerary_pkg ON package_itinerary_days(package_id);
-
--- ============================================================
--- 10) COMPONENTES
--- ============================================================
-
-CREATE TABLE package_components (
-  id BIGSERIAL PRIMARY KEY,
-  package_id BIGINT NOT NULL REFERENCES packages(id) ON DELETE CASCADE,
-  component_type component_type NOT NULL,
-
-  title VARCHAR(220) NOT NULL,
-  description TEXT,
-  details JSONB,
-
-  is_included BOOLEAN NOT NULL DEFAULT TRUE,
-  position INT NOT NULL DEFAULT 0,
-
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
-CREATE INDEX idx_components_pkg ON package_components(package_id);
-CREATE INDEX idx_components_type ON package_components(component_type);
-CREATE INDEX idx_components_pos ON package_components(package_id, position);
-
--- ============================================================
--- 11) TARIFAS
--- ============================================================
-
-CREATE TABLE package_rate_plans (
-  id BIGSERIAL PRIMARY KEY,
-  package_id BIGINT NOT NULL REFERENCES packages(id) ON DELETE CASCADE,
-
-  name VARCHAR(180) NOT NULL,
-  currency_code CHAR(3) NOT NULL REFERENCES currencies(code),
-
-  date_from DATE,
-  date_to DATE,
-
-  min_nights INT,
-  max_nights INT,
-
-  taxes_included BOOLEAN NOT NULL DEFAULT TRUE,
-  notes TEXT,
-
-  is_active BOOLEAN NOT NULL DEFAULT TRUE,
-
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
-CREATE INDEX idx_rate_plan_pkg ON package_rate_plans(package_id);
-CREATE INDEX idx_rate_plan_active ON package_rate_plans(is_active);
-CREATE INDEX idx_rate_plan_dates ON package_rate_plans(date_from, date_to);
-
-CREATE TABLE package_rate_items (
-  id BIGSERIAL PRIMARY KEY,
-  rate_plan_id BIGINT NOT NULL REFERENCES package_rate_plans(id) ON DELETE CASCADE,
-
-  occupancy occupancy_type,
-  pax_type pax_type,
-
-  min_age INT,
-  max_age INT,
-
-  price NUMERIC(12,2) NOT NULL DEFAULT 0,
-  cost NUMERIC(12,2),
-  tax_amount NUMERIC(12,2),
-
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
-CREATE INDEX idx_rate_items_plan ON package_rate_items(rate_plan_id);
-CREATE INDEX idx_rate_items_occ ON package_rate_items(occupancy);
-CREATE INDEX idx_rate_items_pax ON package_rate_items(pax_type);
-
--- ============================================================
--- 12) SALIDAS
--- ============================================================
-
-CREATE TABLE package_departures (
-  id BIGSERIAL PRIMARY KEY,
-  package_id BIGINT NOT NULL REFERENCES packages(id) ON DELETE CASCADE,
-
-  departure_date DATE NOT NULL,
-  return_date DATE,
-
-  capacity INT,
-  available_seats INT,
-
-  status departure_status NOT NULL DEFAULT 'OPEN',
-  notes VARCHAR(255),
-
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-
-  UNIQUE (package_id, departure_date)
-);
-
-CREATE INDEX idx_departure_pkg ON package_departures(package_id);
-CREATE INDEX idx_departure_status ON package_departures(status);
-CREATE INDEX idx_departure_date ON package_departures(departure_date);
-
--- ============================================================
--- 13) PROMOCIONES
--- ============================================================
-
-CREATE TABLE promotions (
-  id BIGSERIAL PRIMARY KEY,
-
-  code VARCHAR(50) NOT NULL UNIQUE,
-  description VARCHAR(255),
-
-  discount_type discount_type NOT NULL DEFAULT 'PERCENT',
-  discount_value NUMERIC(12,2) NOT NULL DEFAULT 0,
-
-  currency_code CHAR(3) REFERENCES currencies(code),
-  is_active BOOLEAN NOT NULL DEFAULT TRUE,
-
-  starts_at TIMESTAMPTZ,
-  ends_at TIMESTAMPTZ,
-
-  max_uses INT,
-  uses_count INT NOT NULL DEFAULT 0,
-
-  min_order_amount NUMERIC(12,2),
-  restrict_to_agency BOOLEAN NOT NULL DEFAULT FALSE,
-
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  deleted_at TIMESTAMPTZ
-);
-
-CREATE INDEX idx_promotions_active ON promotions(is_active);
-CREATE INDEX idx_promotions_dates ON promotions(starts_at, ends_at);
-CREATE INDEX idx_promotions_code_active ON promotions(code, is_active);
-
-CREATE TABLE promotion_packages (
-  promotion_id BIGINT NOT NULL REFERENCES promotions(id) ON DELETE CASCADE,
-  package_id BIGINT NOT NULL REFERENCES packages(id) ON DELETE CASCADE,
-  PRIMARY KEY (promotion_id, package_id)
-);
-
-CREATE TABLE promotion_agencies (
-  promotion_id BIGINT NOT NULL REFERENCES promotions(id) ON DELETE CASCADE,
-  agency_id BIGINT NOT NULL REFERENCES agencies(id) ON DELETE CASCADE,
-  PRIMARY KEY (promotion_id, agency_id)
+  unique (package_id, day_number)
 );
 
 -- ============================================================
--- 14) ORDENES / ITEMS / VIAJEROS / PAGOS / VOUCHERS
+-- 8) ORDENES (VENTAS)
 -- ============================================================
 
 CREATE TABLE orders (
   id BIGSERIAL PRIMARY KEY,
-
-  -- CLAVE / FOLIO COMERCIAL
   order_number TEXT NOT NULL UNIQUE DEFAULT generate_order_number(),
-
-  customer_id BIGINT NOT NULL REFERENCES users(id),
-  agency_id BIGINT REFERENCES agencies(id),
-
+  
+  user_id BIGINT NOT NULL REFERENCES users(id), -- Cliente que compra
+  -- Eliminado agency_id
+  
   status order_status NOT NULL DEFAULT 'DRAFT',
-
+  
   currency_code CHAR(3) NOT NULL REFERENCES currencies(code),
-  subtotal NUMERIC(12,2) NOT NULL DEFAULT 0,
-  discount_total NUMERIC(12,2) NOT NULL DEFAULT 0,
-  tax_total NUMERIC(12,2) NOT NULL DEFAULT 0,
-  total NUMERIC(12,2) NOT NULL DEFAULT 0,
-
-  promotion_code VARCHAR(50),
-
-  commission_pct NUMERIC(5,2),
-  commission_amount NUMERIC(12,2),
-  net_total NUMERIC(12,2),
-
-  paid_at TIMESTAMPTZ,
-  cancelled_at TIMESTAMPTZ,
-  completed_at TIMESTAMPTZ,
-
+  total_amount NUMERIC(12,2) NOT NULL DEFAULT 0,
+  
   notes TEXT,
-
+  
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   deleted_at TIMESTAMPTZ
 );
-
-CREATE INDEX idx_orders_customer ON orders(customer_id);
-CREATE INDEX idx_orders_agency ON orders(agency_id);
-CREATE INDEX idx_orders_status ON orders(status);
-CREATE INDEX idx_orders_customer_status ON orders(customer_id, status);
-CREATE INDEX idx_orders_created_at ON orders(created_at);
 
 CREATE TABLE order_items (
   id BIGSERIAL PRIMARY KEY,
   order_id BIGINT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
   package_id BIGINT REFERENCES packages(id),
-
+  
   title VARCHAR(220) NOT NULL,
-  item_type order_item_type NOT NULL DEFAULT 'PACKAGE',
-
-  departure_id BIGINT REFERENCES package_departures(id),
-
-  start_date DATE,
-  end_date DATE,
-  nights INT,
-
-  pax_adults INT NOT NULL DEFAULT 1,
-  pax_children INT NOT NULL DEFAULT 0,
-  pax_infants INT NOT NULL DEFAULT 0,
-
-  unit_price NUMERIC(12,2) NOT NULL DEFAULT 0,
   quantity INT NOT NULL DEFAULT 1,
+  unit_price NUMERIC(12,2) NOT NULL DEFAULT 0,
   total_price NUMERIC(12,2) NOT NULL DEFAULT 0,
-
-  details JSONB,
-
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  deleted_at TIMESTAMPTZ
+  
+  start_date DATE,
+  
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-
-CREATE INDEX idx_order_items_order ON order_items(order_id);
-CREATE INDEX idx_order_items_package ON order_items(package_id);
-CREATE INDEX idx_order_items_departure ON order_items(departure_id);
-
-CREATE TABLE order_travelers (
-  id BIGSERIAL PRIMARY KEY,
-  order_id BIGINT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
-  order_item_id BIGINT REFERENCES order_items(id) ON DELETE SET NULL,
-
-  first_name VARCHAR(120) NOT NULL,
-  last_name VARCHAR(120) NOT NULL,
-  birth_date DATE,
-  gender gender_type,
-  nationality VARCHAR(80),
-
-  document_type document_type,
-  document_number VARCHAR(80),
-
-  email CITEXT,
-  phone VARCHAR(30),
-
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
-CREATE INDEX idx_travelers_order ON order_travelers(order_id);
-CREATE INDEX idx_travelers_item ON order_travelers(order_item_id);
-
-CREATE TABLE payments (
-  id BIGSERIAL PRIMARY KEY,
-  order_id BIGINT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
-
-  provider payment_provider NOT NULL DEFAULT 'OTHER',
-  status payment_status NOT NULL DEFAULT 'PENDING',
-
-  amount NUMERIC(12,2) NOT NULL,
-  currency_code CHAR(3) NOT NULL REFERENCES currencies(code),
-
-  transaction_id VARCHAR(120),
-  paid_at TIMESTAMPTZ,
-
-  payload JSONB,
-
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
-CREATE INDEX idx_payments_order ON payments(order_id);
-CREATE INDEX idx_payments_status ON payments(status);
-
-CREATE TABLE vouchers (
-  id BIGSERIAL PRIMARY KEY,
-  order_id BIGINT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
-  order_item_id BIGINT REFERENCES order_items(id) ON DELETE SET NULL,
-
-  voucher_number VARCHAR(60),
-  provider_reference VARCHAR(120),
-
-  status voucher_status NOT NULL DEFAULT 'PENDING',
-
-  file_url TEXT,
-  issued_at TIMESTAMPTZ,
-
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
-CREATE INDEX idx_vouchers_order ON vouchers(order_id);
-CREATE INDEX idx_vouchers_status ON vouchers(status);
 
 -- ============================================================
--- 15) FAQ + REVIEWS
+-- 9) TRIGGERS
 -- ============================================================
-
-CREATE TABLE package_faqs (
-  id BIGSERIAL PRIMARY KEY,
-  package_id BIGINT NOT NULL REFERENCES packages(id) ON DELETE CASCADE,
-  question VARCHAR(255) NOT NULL,
-  answer TEXT NOT NULL,
-  position INT NOT NULL DEFAULT 0,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
-CREATE INDEX idx_faq_pkg ON package_faqs(package_id);
-CREATE INDEX idx_faq_pos ON package_faqs(package_id, position);
-
-CREATE TABLE package_reviews (
-  id BIGSERIAL PRIMARY KEY,
-  package_id BIGINT NOT NULL REFERENCES packages(id) ON DELETE CASCADE,
-  user_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
-  rating SMALLINT NOT NULL CHECK (rating BETWEEN 1 AND 5),
-  title VARCHAR(120),
-  comment TEXT,
-  is_verified BOOLEAN NOT NULL DEFAULT FALSE,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
-CREATE INDEX idx_reviews_pkg ON package_reviews(package_id);
-CREATE INDEX idx_reviews_rating ON package_reviews(rating);
-
--- ============================================================
--- 16) TRIGGERS updated_at (aplicar a todas las tablas que lo tengan)
--- ============================================================
-
 DO $$
 DECLARE
   t TEXT;
@@ -756,25 +353,20 @@ BEGIN
 END $$;
 
 -- ============================================================
--- 17) SEEDS
+-- 10) SEEDS BÁSICOS
 -- ============================================================
 
-INSERT INTO currencies (code, name, symbol)
-VALUES
+INSERT INTO currencies (code, name, symbol) VALUES
   ('MXN', 'Peso Mexicano', '$'),
   ('USD', 'Dólar Americano', '$'),
   ('EUR', 'Euro', '€')
-ON CONFLICT (code) DO UPDATE SET
-  name = EXCLUDED.name,
-  symbol = EXCLUDED.symbol,
-  updated_at = now();
+ON CONFLICT DO NOTHING;
 
-INSERT INTO users (email, name, role, registered_at, status)
-VALUES ('admin@koneex.com', 'Administrador', 'ADMIN', now(), 'ACTIVE')
-ON CONFLICT (email) DO UPDATE SET
-  name = EXCLUDED.name,
-  role = EXCLUDED.role,
-  status = EXCLUDED.status,
-  updated_at = now();
+INSERT INTO company_settings (company_name, email, default_currency) VALUES
+  ('Koneex Travel', 'admin@koneex.com', 'MXN');
+
+INSERT INTO users (email, name, role, status, password) VALUES 
+  ('admin@koneex.com', 'Administrador Global', 'ADMIN', 'ACTIVE', '$2a$10$X7.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1' /* Hash de prueba o crear desde app */)
+ON CONFLICT (email) DO UPDATE SET role = 'ADMIN';
 
 COMMIT;

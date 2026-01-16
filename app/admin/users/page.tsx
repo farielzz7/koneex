@@ -43,18 +43,14 @@ interface User {
     registered_at: string
     phone: string | null
     status: string
-    agency_id: number | null
-    agencies?: { name: string }
+    // agency properties removed
 }
 
-interface Agency {
-    id: number
-    name: string
-}
+// Agency interface removed
 
 export default function UsersPage() {
     const [users, setUsers] = useState<User[]>([])
-    const [agencies, setAgencies] = useState<Agency[]>([])
+
     const [loading, setLoading] = useState(true)
     const [searchTerm, setSearchTerm] = useState("")
 
@@ -72,7 +68,7 @@ export default function UsersPage() {
         password: "",
         role: "CUSTOMER",
         phone: "",
-        agency_id: "null",
+
         status: "ACTIVE"
     })
 
@@ -83,14 +79,10 @@ export default function UsersPage() {
     const fetchData = async () => {
         try {
             setLoading(true)
-            const [usersRes, agenciesRes] = await Promise.all([
-                fetch("/api/admin/users"),
-                fetch("/api/admin/agencies")
-            ])
+            const usersRes = await fetch("/api/admin/users")
             const usersData = await usersRes.json()
-            const agenciesData = await agenciesRes.json()
             setUsers(usersData)
-            setAgencies(agenciesData)
+
         } catch (error) {
             console.error("Error:", error)
             toast.error("Error al cargar datos")
@@ -107,7 +99,7 @@ export default function UsersPage() {
             password: "",
             role: "CUSTOMER",
             phone: "",
-            agency_id: "null",
+
             status: "ACTIVE"
         })
         setIsDialogOpen(true)
@@ -121,8 +113,8 @@ export default function UsersPage() {
             password: "",
             role: user.role,
             phone: user.phone || "",
-            agency_id: user.agency_id?.toString() || "null",
             status: user.status
+
         })
         setIsDialogOpen(true)
     }
@@ -149,7 +141,7 @@ export default function UsersPage() {
 
         const payload = {
             ...formData,
-            agency_id: formData.agency_id === "null" ? null : parseInt(formData.agency_id)
+            // agency_id removed
         }
 
         try {
@@ -265,7 +257,9 @@ export default function UsersPage() {
                             <thead>
                                 <tr className="bg-gray-50/50 text-xs uppercase text-gray-500 font-semibold border-b">
                                     <th className="text-left py-4 px-6">Información</th>
-                                    <th className="text-left py-4 px-6">Agencia</th>
+                                    <th className="text-left py-4 px-6">Información</th>
+                                    {/* Agency column removed */}
+                                    <th className="text-left py-4 px-6">Rol</th>
                                     <th className="text-left py-4 px-6">Rol</th>
                                     <th className="text-left py-4 px-6">Estado</th>
                                     <th className="text-right py-4 px-6">Acciones</th>
@@ -287,11 +281,7 @@ export default function UsersPage() {
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="py-4 px-6">
-                                            <div className="text-sm text-gray-700 font-medium">
-                                                {user.agencies?.name || "Sin Agencia"}
-                                            </div>
-                                        </td>
+                                        {/* Agency cell removed */}
                                         <td className="py-4 px-6">
                                             <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${getRoleBadge(user.role)}`}>
                                                 {user.role}
@@ -401,7 +391,6 @@ export default function UsersPage() {
                                     onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                                 >
                                     <option value="ADMIN">Administrador</option>
-                                    <option value="AGENCY_ADMIN">Admin Agencia</option>
                                     <option value="AGENT">Agente</option>
                                     <option value="SUPPORT">Soporte</option>
                                     <option value="CUSTOMER">Cliente</option>
@@ -410,45 +399,34 @@ export default function UsersPage() {
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label htmlFor="agency_id">Agencia</Label>
-                                <select
-                                    id="agency_id"
-                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                    value={formData.agency_id}
-                                    onChange={(e) => setFormData({ ...formData, agency_id: e.target.value })}
-                                >
-                                    <option value="null">Sin Agencia</option>
-                                    {agencies.map(a => (
-                                        <option key={a.id} value={a.id}>{a.name}</option>
-                                    ))}
-                                </select>
+                                <div className="space-y-2">
+                                    <Label htmlFor="status">Estado</Label>
+                                    <select
+                                        id="status"
+                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                        value={formData.status}
+                                        onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                                    >
+                                        <option value="ACTIVE">Activo</option>
+                                        <option value="BLOCKED">Bloqueado</option>
+                                    </select>
+                                </div>
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="status">Estado</Label>
-                                <select
-                                    id="status"
-                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                    value={formData.status}
-                                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                                >
-                                    <option value="ACTIVE">Activo</option>
-                                    <option value="BLOCKED">Bloqueado</option>
-                                </select>
+                                <Label htmlFor="password">
+                                    {selectedUser ? "Nueva Contraseña (opcional)" : "Contraseña *"}
+                                </Label>
+                                <Input
+                                    id="password"
+                                    type="password"
+                                    value={formData.password}
+                                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                    placeholder={selectedUser ? "Dejar en blanco para no cambiar" : "Mínimo 6 caracteres"}
+                                    required={!selectedUser}
+                                />
                             </div>
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="password">
-                                {selectedUser ? "Nueva Contraseña (opcional)" : "Contraseña *"}
-                            </Label>
-                            <Input
-                                id="password"
-                                type="password"
-                                value={formData.password}
-                                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                                placeholder={selectedUser ? "Dejar en blanco para no cambiar" : "Mínimo 6 caracteres"}
-                                required={!selectedUser}
-                            />
-                        </div>
+
                         <DialogFooter className="pt-4">
                             <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                                 <X className="w-4 h-4 mr-2" /> Cancelar
@@ -486,8 +464,7 @@ export default function UsersPage() {
                                 <span className="text-muted-foreground">Rol:</span>
                                 <span className="font-semibold">{selectedUser.role}</span>
 
-                                <span className="text-muted-foreground">Agencia:</span>
-                                <span className="font-semibold">{selectedUser.agencies?.name || "Sin Agencia"}</span>
+                                {/* Agency detail removed */}
 
                                 <span className="text-muted-foreground">Estado:</span>
                                 <span className="font-semibold">{selectedUser.status}</span>
