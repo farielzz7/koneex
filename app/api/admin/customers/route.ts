@@ -15,6 +15,8 @@ export async function GET() {
                 orders(count)
             `)
             .order('created_at', { ascending: false })
+            // @ts-ignore
+            .is('deleted_at', null)
 
         if (error) throw error
 

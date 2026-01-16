@@ -45,7 +45,7 @@ export default function ClientesPage() {
                             <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-3">
                                 <Users className="w-8 h-8 text-primary" />
                             </div>
-                            <p className="text-3xl font-bold text-primary mb-1">5,000+</p>
+                            <p className="text-3xl font-bold text-primary mb-1">450+</p>
                             <p className="text-sm text-text-muted">Clientes Satisfechos</p>
                         </motion.div>
 
@@ -73,7 +73,7 @@ export default function ClientesPage() {
                             <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
                                 <Heart className="w-8 h-8 text-red-500" />
                             </div>
-                            <p className="text-3xl font-bold text-red-500 mb-1">15,000+</p>
+                            <p className="text-3xl font-bold text-red-500 mb-1">1,200+</p>
                             <p className="text-sm text-text-muted">Likes en Redes</p>
                         </motion.div>
 
@@ -87,7 +87,7 @@ export default function ClientesPage() {
                             <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-3">
                                 <Camera className="w-8 h-8 text-accent" />
                             </div>
-                            <p className="text-3xl font-bold text-accent mb-1">2,500+</p>
+                            <p className="text-3xl font-bold text-accent mb-1">180+</p>
                             <p className="text-sm text-text-muted">Fotos Compartidas</p>
                         </motion.div>
                     </div>

@@ -15,16 +15,19 @@ import {
     User,
     Menu,
     X,
+    Building2,
 } from "lucide-react"
 import { useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 
 const navigation = [
     { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
+
     { name: "Paquetes", href: "/admin/packages", icon: Package },
     { name: "Salidas", href: "/admin/departures", icon: Calendar },
     { name: "Hoteles", href: "/admin/hotels", icon: Hotel },
     { name: "Aerolíneas", href: "/admin/airlines", icon: Plane },
+    { name: "Proveedores", href: "/admin/providers", icon: Building2 },
     { name: "Clientes", href: "/admin/customers", icon: User },
     { name: "Órdenes", href: "/admin/orders", icon: ShoppingCart },
     { name: "Promociones", href: "/admin/promotions", icon: Tag },

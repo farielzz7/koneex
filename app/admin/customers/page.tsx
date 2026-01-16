@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Plus, Search, Edit, User as UserIcon, FileDown } from "lucide-react"
+import { Plus, Search, Edit, User as UserIcon, FileDown, Trash2 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { exportToCSV } from "@/lib/export-csv"
 
@@ -41,6 +41,29 @@ export default function CustomersPage() {
             console.error("Error:", error)
         } finally {
             setLoading(false)
+        }
+    }
+
+    const handleDelete = async (id: string, name: string) => {
+        if (!confirm(`¿Estás seguro de que deseas eliminar al cliente ${name}? Esta acción no se puede deshacer.`)) {
+            return
+        }
+
+        try {
+            const response = await fetch(`/api/admin/customers/${id}`, {
+                method: 'DELETE',
+            })
+
+            if (response.ok) {
+                fetchCustomers()
+                alert('Cliente eliminado correctamente')
+            } else {
+                const data = await response.json()
+                alert(data.error || 'Error al eliminar el cliente')
+            }
+        } catch (error) {
+            console.error('Error deleting customer:', error)
+            alert('Error al eliminar el cliente')
         }
     }
 
@@ -155,6 +178,15 @@ export default function CustomersPage() {
                                                             <Edit className="w-4 h-4" />
                                                         </Button>
                                                     </Link>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        title="Eliminar"
+                                                        className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                                                        onClick={() => handleDelete(customer.id, customer.user?.name || 'Cliente')}
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </Button>
                                                 </div>
                                             </td>
                                         </tr>

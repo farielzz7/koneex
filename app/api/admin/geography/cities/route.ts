@@ -7,24 +7,18 @@ export async function GET() {
             .from('cities')
             .select(`
                 *,
-                states (
-                    name,
-                    countries (
-                        name
-                    )
+                countries (
+                    name
                 )
             `)
             .order('name', { ascending: true })
 
         if (error) throw error
 
-        // Transform to match previous format with nested relations
+        // Transform for UI - countries join will be nested
         const formattedCities = cities?.map(city => ({
             ...city,
-            state: {
-                name: city.states?.name,
-                country: city.states?.countries
-            }
+            country_name: city.countries?.name
         }))
 
         return NextResponse.json(formattedCities)
@@ -40,13 +34,20 @@ export async function GET() {
 export async function POST(request: Request) {
     try {
         const body = await request.json()
-        const { name, stateId } = body
+        const { name, country_id, state, latitude, longitude } = body
+
+        if (!name || !country_id) {
+            return NextResponse.json({ error: "Nombre y ID de país son requeridos" }, { status: 400 })
+        }
 
         const { data: city, error } = await supabase
             .from('cities')
             .insert({
                 name,
-                state_id: stateId,
+                country_id,
+                state: state || null,
+                latitude: latitude || null,
+                longitude: longitude || null
             })
             .select()
             .single()
@@ -57,7 +58,7 @@ export async function POST(request: Request) {
     } catch (error) {
         console.error("Error creating city:", error)
         return NextResponse.json(
-            { error: "Error al crear ciudad" },
+            { error: `Error al crear ciudad: ${error instanceof Error ? error.message : 'Error desconocido'}` },
             { status: 500 }
         )
     }

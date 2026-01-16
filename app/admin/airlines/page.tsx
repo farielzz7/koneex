@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Plus, Plane, Search, Edit, Trash2, Power, X, Check, Loader2, FileDown } from "lucide-react"
+import { Plus, Plane, Search, Edit, Trash2, Power, X, Check, Loader2, FileDown, Mail, Globe, Info } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { exportToCSV } from "@/lib/export-csv"
 import { Switch } from "@/components/ui/switch"
@@ -30,10 +30,13 @@ import {
 import { toast } from "sonner"
 
 interface Airline {
-    id: string
+    id: number
     name: string
-    iata_code: string | null
-    is_active: boolean
+    type: string
+    contact_email: string | null
+    contact_phone: string | null
+    website: string | null
+    status: string
 }
 
 export default function AirlinesPage() {
@@ -42,17 +45,19 @@ export default function AirlinesPage() {
     const [searchTerm, setSearchTerm] = useState("")
 
     // Modal states
-    const [editDialogOpen, setEditDialogOpen] = useState(false)
-    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-    const [toggleDialogOpen, setToggleDialogOpen] = useState(false)
+    const [isDialogOpen, setIsDialogOpen] = useState(false)
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+    const [isDetailOpen, setIsDetailOpen] = useState(false)
     const [selectedAirline, setSelectedAirline] = useState<Airline | null>(null)
     const [isSubmitting, setIsSubmitting] = useState(false)
 
-    // Edit form state
-    const [editForm, setEditForm] = useState({
+    // Form state
+    const [formData, setFormData] = useState({
         name: "",
-        iataCode: "",
-        isActive: true,
+        contact_email: "",
+        contact_phone: "",
+        website: "",
+        status: "ACTIVE"
     })
 
     useEffect(() => {
@@ -61,63 +66,88 @@ export default function AirlinesPage() {
 
     const fetchAirlines = async () => {
         try {
-            const response = await fetch("/api/admin/airlines")
+            setLoading(true)
+            const response = await fetch("/api/admin/providers?type=AIRLINE")
             if (response.ok) {
                 const data = await response.json()
                 setAirlines(data)
             }
         } catch (error) {
             console.error("Error:", error)
+            toast.error("Error al cargar aerolíneas")
         } finally {
             setLoading(false)
         }
     }
 
+    const handleCreateClick = () => {
+        // We can either use a modal or redirect to the new page. 
+        // Consistent with Geography and Users/Agencies, I'll use a modal here.
+        setSelectedAirline(null)
+        setFormData({
+            name: "",
+            contact_email: "",
+            contact_phone: "",
+            website: "",
+            status: "ACTIVE"
+        })
+        setIsDialogOpen(true)
+    }
+
     const handleEditClick = (airline: Airline) => {
         setSelectedAirline(airline)
-        setEditForm({
+        setFormData({
             name: airline.name,
-            iataCode: airline.iata_code || "",
-            isActive: airline.is_active,
+            contact_email: airline.contact_email || "",
+            contact_phone: airline.contact_phone || "",
+            website: airline.website || "",
+            status: airline.status
         })
-        setEditDialogOpen(true)
+        setIsDialogOpen(true)
+    }
+
+    const handleViewDetail = (airline: Airline) => {
+        setSelectedAirline(airline)
+        setIsDetailOpen(true)
     }
 
     const handleDeleteClick = (airline: Airline) => {
         setSelectedAirline(airline)
-        setDeleteDialogOpen(true)
+        setIsDeleteDialogOpen(true)
     }
 
-    const handleToggleClick = (airline: Airline) => {
-        setSelectedAirline(airline)
-        setToggleDialogOpen(true)
-    }
-
-    const handleEditSubmit = async () => {
-        if (!selectedAirline) return
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault()
         setIsSubmitting(true)
 
+        const url = selectedAirline
+            ? `/api/admin/providers/${selectedAirline.id}`
+            : "/api/admin/providers"
+
+        const method = selectedAirline ? "PUT" : "POST"
+
+        const payload = {
+            ...formData,
+            type: "AIRLINE"
+        }
+
         try {
-            const response = await fetch(`/api/admin/airlines/${selectedAirline.id}`, {
-                method: "PUT",
+            const response = await fetch(url, {
+                method,
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    name: editForm.name,
-                    iataCode: editForm.iataCode || null,
-                    isActive: editForm.isActive,
-                }),
+                body: JSON.stringify(payload),
             })
 
-            if (!response.ok) throw new Error("Error al actualizar")
-
-            toast.success("Aerolínea actualizada", {
-                description: `"${editForm.name}" ha sido actualizada correctamente.`,
-            })
-
-            setEditDialogOpen(false)
-            fetchAirlines()
-        } catch (err) {
-            toast.error("Error", { description: "No se pudo actualizar la aerolínea." })
+            if (response.ok) {
+                toast.success(selectedAirline ? "Aerolínea actualizada" : "Aerolínea creada")
+                setIsDialogOpen(false)
+                fetchAirlines()
+            } else {
+                const error = await response.json()
+                toast.error(error.error || "Error en la operación")
+            }
+        } catch (error) {
+            toast.error("Error crítico")
         } finally {
             setIsSubmitting(false)
         }
@@ -128,297 +158,258 @@ export default function AirlinesPage() {
         setIsSubmitting(true)
 
         try {
-            const response = await fetch(`/api/admin/airlines/${selectedAirline.id}`, {
+            const response = await fetch(`/api/admin/providers/${selectedAirline.id}`, {
                 method: "DELETE",
             })
 
-            if (!response.ok) throw new Error("Error al eliminar")
-
-            toast.success("Aerolínea eliminada", {
-                description: `"${selectedAirline.name}" ha sido eliminada.`,
-            })
-
-            setDeleteDialogOpen(false)
-            fetchAirlines()
-        } catch (err) {
-            toast.error("Error", { description: "No se pudo eliminar la aerolínea." })
-        } finally {
-            setIsSubmitting(false)
-        }
-    }
-
-    const handleToggleConfirm = async () => {
-        if (!selectedAirline) return
-        setIsSubmitting(true)
-
-        try {
-            const response = await fetch(`/api/admin/airlines/${selectedAirline.id}`, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ isActive: !selectedAirline.is_active }),
-            })
-
-            if (!response.ok) throw new Error("Error al cambiar estado")
-
-            const newStatus = !selectedAirline.is_active ? "activada" : "desactivada"
-            toast.success(`Aerolínea ${newStatus}`, {
-                description: `"${selectedAirline.name}" ha sido ${newStatus}.`,
-            })
-
-            setToggleDialogOpen(false)
-            fetchAirlines()
-        } catch (err) {
-            toast.error("Error", { description: "No se pudo cambiar el estado." })
+            if (response.ok) {
+                toast.success("Aerolínea eliminada")
+                setIsDeleteDialogOpen(false)
+                fetchAirlines()
+            } else {
+                toast.error("No se pudo eliminar la aerolínea")
+            }
+        } catch (error) {
+            toast.error("Error al eliminar")
         } finally {
             setIsSubmitting(false)
         }
     }
 
     const filteredAirlines = airlines.filter((airline) =>
-        airline.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        airline.iata_code?.toLowerCase().includes(searchTerm.toLowerCase())
+        airline.name.toLowerCase().includes(searchTerm.toLowerCase())
     )
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center h-64">
+            <div className="flex flex-col items-center justify-center h-64 gap-4">
                 <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                <p className="ml-3 text-gray-600">Cargando...</p>
+                <p className="text-gray-500 font-medium">Cargando aerolíneas...</p>
             </div>
         )
     }
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold">Aerolíneas</h1>
-                    <p className="text-gray-600 mt-1">Gestiona todas las aerolíneas</p>
+                    <h1 className="text-3xl font-bold tracking-tight">Aerolíneas</h1>
+                    <p className="text-gray-600 mt-1">Gestiona las aerolíneas disponibles para paquetes</p>
                 </div>
                 <div className="flex gap-2">
-                    <Button
-                        variant="outline"
-                        onClick={() => exportToCSV(airlines, 'aerolineas')}
-                        className="gap-2"
-                        disabled={airlines.length === 0}
-                    >
+                    <Button variant="outline" onClick={() => exportToCSV(airlines, 'aerolineas')} className="gap-2">
                         <FileDown className="w-4 h-4" />
                         Exportar CSV
                     </Button>
-                    <Link href="/admin/airlines/new">
-                        <Button className="gap-2">
-                            <Plus className="w-4 h-4" />
-                            Nueva Aerolínea
-                        </Button>
-                    </Link>
+                    <Button onClick={handleCreateClick} className="gap-2">
+                        <Plus className="w-4 h-4" />
+                        Nueva Aerolínea
+                    </Button>
                 </div>
             </div>
 
-            <Card>
+            <Card className="shadow-sm">
                 <CardContent className="pt-6">
                     <div className="relative">
-                        <Search className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                         <Input
-                            placeholder="Buscar aerolíneas..."
+                            placeholder="Buscar aerolínea..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-10"
+                            className="pl-10 h-11"
                         />
                     </div>
                 </CardContent>
             </Card>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Todas las Aerolíneas ({filteredAirlines.length})</CardTitle>
+            <Card className="shadow-sm overflow-hidden">
+                <CardHeader className="bg-gray-50/50 border-b">
+                    <CardTitle className="text-lg">Todas las Aerolíneas ({filteredAirlines.length})</CardTitle>
                 </CardHeader>
-                <CardContent>
-                    {filteredAirlines.length === 0 ? (
-                        <div className="text-center py-12">
-                            <Plane className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-                            <h3 className="text-lg font-medium text-gray-900 mb-2">
-                                {searchTerm ? "No se encontraron aerolíneas" : "No hay aerolíneas registradas"}
-                            </h3>
-                            <p className="text-gray-600 mb-4">
-                                {searchTerm ? "Intenta con otro término" : "Agrega aerolíneas para tus paquetes de viaje"}
-                            </p>
-                            {!searchTerm && (
-                                <Link href="/admin/airlines/new">
-                                    <Button>
-                                        <Plus className="w-4 h-4 mr-2" />
-                                        Agregar Aerolínea
-                                    </Button>
-                                </Link>
-                            )}
-                        </div>
-                    ) : (
-                        <div className="overflow-x-auto">
-                            <table className="w-full">
-                                <thead>
-                                    <tr className="border-b">
-                                        <th className="text-left py-3 px-4">Nombre</th>
-                                        <th className="text-left py-3 px-4">Código IATA</th>
-                                        <th className="text-left py-3 px-4">Estado</th>
-                                        <th className="text-right py-3 px-4">Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {filteredAirlines.map((airline) => (
-                                        <tr key={airline.id} className="border-b hover:bg-gray-50">
-                                            <td className="py-3 px-4 font-medium">{airline.name}</td>
-                                            <td className="py-3 px-4">
-                                                {airline.iata_code ? (
-                                                    <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded font-mono text-sm">
-                                                        {airline.iata_code}
-                                                    </span>
-                                                ) : (
-                                                    <span className="text-gray-400">—</span>
-                                                )}
-                                            </td>
-                                            <td className="py-3 px-4">
-                                                <span
-                                                    className={`px-2 py-1 text-xs font-medium rounded-full ${airline.is_active
-                                                        ? "bg-green-100 text-green-800"
-                                                        : "bg-gray-100 text-gray-800"
-                                                        }`}
-                                                >
-                                                    {airline.is_active ? "Activa" : "Inactiva"}
-                                                </span>
-                                            </td>
-                                            <td className="py-3 px-4">
-                                                <div className="flex items-center justify-end gap-1">
-                                                    <Button variant="ghost" size="sm" title="Editar" onClick={() => handleEditClick(airline)}>
-                                                        <Edit className="w-4 h-4" />
-                                                    </Button>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        title={airline.is_active ? "Desactivar" : "Activar"}
-                                                        onClick={() => handleToggleClick(airline)}
-                                                        className={airline.is_active ? "text-orange-600 hover:text-orange-700" : "text-green-600 hover:text-green-700"}
-                                                    >
-                                                        <Power className="w-4 h-4" />
-                                                    </Button>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        title="Eliminar"
-                                                        onClick={() => handleDeleteClick(airline)}
-                                                        className="text-red-600 hover:text-red-700"
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </Button>
+                <CardContent className="p-0">
+                    <div className="overflow-x-auto">
+                        <table className="w-full border-collapse">
+                            <thead>
+                                <tr className="bg-gray-50/50 text-xs uppercase text-gray-500 font-semibold border-b">
+                                    <th className="text-left py-4 px-6">Información</th>
+                                    <th className="text-left py-4 px-6">Contacto</th>
+                                    <th className="text-left py-4 px-6">Estado</th>
+                                    <th className="text-right py-4 px-6">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {filteredAirlines.map((airline) => (
+                                    <tr key={airline.id} className="border-b last:border-0 hover:bg-gray-50/80 transition-colors">
+                                        <td className="py-4 px-6">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
+                                                    <Plane className="w-5 h-5" />
                                                 </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
+                                                <div className="font-semibold text-gray-900">{airline.name}</div>
+                                            </div>
+                                        </td>
+                                        <td className="py-4 px-6">
+                                            <div className="text-sm text-gray-500">
+                                                <div className="flex items-center gap-1"><Mail className="w-3 h-3" /> {airline.contact_email || "-"}</div>
+                                                <div className="flex items-center gap-1 mt-1"><Globe className="w-3 h-3" /> {airline.website || "-"}</div>
+                                            </div>
+                                        </td>
+                                        <td className="py-4 px-6">
+                                            <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${airline.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                                {airline.status}
+                                            </span>
+                                        </td>
+                                        <td className="py-4 px-6 text-right">
+                                            <div className="flex items-center justify-end gap-1">
+                                                <Button variant="ghost" size="icon" className="rounded-full" onClick={() => handleViewDetail(airline)}>
+                                                    <Info className="w-4 h-4" />
+                                                </Button>
+                                                <Button variant="ghost" size="icon" className="rounded-full" onClick={() => handleEditClick(airline)}>
+                                                    <Edit className="w-4 h-4" />
+                                                </Button>
+                                                <Button variant="ghost" size="icon" className="rounded-full text-red-600 hover:text-red-700" onClick={() => handleDeleteClick(airline)}>
+                                                    <Trash2 className="w-4 h-4" />
+                                                </Button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                                {filteredAirlines.length === 0 && (
+                                    <tr>
+                                        <td colSpan={4} className="py-12 text-center text-gray-500">
+                                            No se encontraron aerolíneas
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
                 </CardContent>
             </Card>
 
-            {/* Edit Dialog */}
-            <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-                <DialogContent className="sm:max-w-[450px]">
+            {/* Create/Edit Dialog */}
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogContent>
                     <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                            <Edit className="w-5 h-5 text-primary" />
-                            Editar Aerolínea
-                        </DialogTitle>
-                        <DialogDescription>
-                            Modifica los datos de la aerolínea.
-                        </DialogDescription>
+                        <DialogTitle>{selectedAirline ? "Editar Aerolínea" : "Nueva Aerolínea"}</DialogTitle>
                     </DialogHeader>
-                    <div className="grid gap-4 py-4">
+                    <form onSubmit={handleSubmit} className="space-y-4 py-4">
                         <div className="space-y-2">
-                            <Label htmlFor="name">Nombre</Label>
+                            <Label htmlFor="name">Nombre de la Aerolínea *</Label>
                             <Input
                                 id="name"
-                                value={editForm.name}
-                                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                                placeholder="Nombre de la aerolínea"
+                                value={formData.name}
+                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                required
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="iataCode">Código IATA</Label>
+                            <Label htmlFor="email">Email de Contacto</Label>
                             <Input
-                                id="iataCode"
-                                value={editForm.iataCode}
-                                onChange={(e) => setEditForm({ ...editForm, iataCode: e.target.value.toUpperCase() })}
-                                placeholder="Ej: AA, AM, VB"
-                                maxLength={3}
+                                id="email"
+                                type="email"
+                                value={formData.contact_email}
+                                onChange={(e) => setFormData({ ...formData, contact_email: e.target.value })}
                             />
                         </div>
-                        <div className="flex items-center justify-between">
-                            <Label htmlFor="isActive">Estado activo</Label>
-                            <Switch
-                                id="isActive"
-                                checked={editForm.isActive}
-                                onCheckedChange={(checked) => setEditForm({ ...editForm, isActive: checked })}
+                        <div className="space-y-2">
+                            <Label htmlFor="phone">Teléfono de Contacto</Label>
+                            <Input
+                                id="phone"
+                                value={formData.contact_phone}
+                                onChange={(e) => setFormData({ ...formData, contact_phone: e.target.value })}
                             />
                         </div>
-                    </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="website">Sitio Web</Label>
+                            <Input
+                                id="website"
+                                value={formData.website}
+                                onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                                placeholder="https://..."
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="status">Estado</Label>
+                            <select
+                                id="status"
+                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                value={formData.status}
+                                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                            >
+                                <option value="ACTIVE">Activa</option>
+                                <option value="INACTIVE">Inactiva</option>
+                            </select>
+                        </div>
+                        <DialogFooter className="pt-4">
+                            <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
+                            <Button type="submit" disabled={isSubmitting}>
+                                {isSubmitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Check className="w-4 h-4 mr-2" />}
+                                {selectedAirline ? "Guardar" : "Crear"}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            {/* Detail Modal */}
+            <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Detalle de la Aerolínea</DialogTitle>
+                    </DialogHeader>
+                    {selectedAirline && (
+                        <div className="space-y-4">
+                            <div className="grid grid-cols-2 gap-y-3 text-sm border p-4 rounded-lg bg-gray-50/50">
+                                <span className="text-muted-foreground">ID:</span>
+                                <span className="font-semibold">{selectedAirline.id}</span>
+
+                                <span className="text-muted-foreground">Nombre:</span>
+                                <span className="font-semibold">{selectedAirline.name}</span>
+
+                                <span className="text-muted-foreground">Email:</span>
+                                <span className="font-semibold">{selectedAirline.contact_email || "-"}</span>
+
+                                <span className="text-muted-foreground">Teléfono:</span>
+                                <span className="font-semibold">{selectedAirline.contact_phone || "-"}</span>
+
+                                <span className="text-muted-foreground">Website:</span>
+                                <span className="font-semibold truncate">
+                                    {selectedAirline.website ? (
+                                        <a href={selectedAirline.website} target="_blank" className="text-primary hover:underline">{selectedAirline.website}</a>
+                                    ) : "-"}
+                                </span>
+
+                                <span className="text-muted-foreground">Estado:</span>
+                                <span className={`font-semibold ${selectedAirline.status === 'ACTIVE' ? 'text-green-600' : 'text-red-600'}`}>{selectedAirline.status}</span>
+                            </div>
+                        </div>
+                    )}
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
-                            <X className="w-4 h-4 mr-2" />
-                            Cancelar
-                        </Button>
-                        <Button onClick={handleEditSubmit} disabled={isSubmitting || !editForm.name}>
-                            {isSubmitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Check className="w-4 h-4 mr-2" />}
-                            Guardar
-                        </Button>
+                        <Button variant="outline" onClick={() => setIsDetailOpen(false)}>Cerrar</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
 
-            {/* Delete Dialog */}
-            <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+            {/* Delete Confirmation */}
+            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle className="flex items-center gap-2 text-red-600">
-                            <Trash2 className="w-5 h-5" />
-                            ¿Eliminar aerolínea?
-                        </AlertDialogTitle>
-                        <AlertDialogDescription className="space-y-2">
-                            <p>Estás a punto de eliminar <strong>"{selectedAirline?.name}"</strong>.</p>
-                            <p className="text-red-600 font-medium">⚠️ Esta acción no se puede deshacer.</p>
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel disabled={isSubmitting}>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDeleteConfirm} disabled={isSubmitting} className="bg-red-600 hover:bg-red-700">
-                            {isSubmitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
-                            Eliminar
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
-
-            {/* Toggle Dialog */}
-            <AlertDialog open={toggleDialogOpen} onOpenChange={setToggleDialogOpen}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle className="flex items-center gap-2">
-                            <Power className={`w-5 h-5 ${selectedAirline?.is_active ? "text-orange-600" : "text-green-600"}`} />
-                            {selectedAirline?.is_active ? "¿Desactivar aerolínea?" : "¿Activar aerolínea?"}
+                        <AlertDialogTitle className="text-red-600 flex items-center gap-2">
+                            <Trash2 className="w-5 h-5" /> ¿Eliminar aerolínea?
                         </AlertDialogTitle>
                         <AlertDialogDescription>
-                            {selectedAirline?.is_active
-                                ? `"${selectedAirline?.name}" dejará de estar disponible.`
-                                : `"${selectedAirline?.name}" estará disponible.`}
+                            Estás a punto de eliminar a <strong>{selectedAirline?.name}</strong>. Esta acción no se puede deshacer.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel disabled={isSubmitting}>Cancelar</AlertDialogCancel>
                         <AlertDialogAction
-                            onClick={handleToggleConfirm}
+                            onClick={handleDeleteConfirm}
                             disabled={isSubmitting}
-                            className={selectedAirline?.is_active ? "bg-orange-600 hover:bg-orange-700" : "bg-green-600 hover:bg-green-700"}
+                            className="bg-red-600 hover:bg-red-700"
                         >
-                            {isSubmitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Power className="w-4 h-4 mr-2" />}
-                            {selectedAirline?.is_active ? "Desactivar" : "Activar"}
+                            {isSubmitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : "Sí, eliminar"}
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>

@@ -65,12 +65,20 @@ export async function DELETE(request: Request, { params }: Params) {
             )
         }
 
+        // Soft delete para mantener integridad referencial
         const { error } = await supabase
             .from('users')
-            .delete()
+            .update({
+                deleted_at: new Date().toISOString(),
+                status: 'BLOCKED'
+            })
             .eq('id', userId)
 
-        if (error) throw error
+        if (error) {
+            // Si el error es por violacion de FK y estamos intentando borrar fisicamente
+            // la solucion es soft delete. Si falla el update es otro problema.
+            throw error
+        }
 
         return NextResponse.json({ message: "Usuario eliminado correctamente" })
     } catch (error) {

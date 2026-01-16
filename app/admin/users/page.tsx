@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Plus, Search, Edit, Trash2, User as UserIcon, Shield, Mail, Calendar, Loader2, X, Check, FileDown } from "lucide-react"
+import { Plus, Search, Edit, Trash2, User as UserIcon, Shield, Mail, Calendar, Loader2, X, Check, FileDown, Info } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
@@ -40,17 +40,28 @@ interface User {
     email: string
     name: string
     role: string
-    created_at: string
+    registered_at: string
+    phone: string | null
+    status: string
+    agency_id: number | null
+    agencies?: { name: string }
+}
+
+interface Agency {
+    id: number
+    name: string
 }
 
 export default function UsersPage() {
     const [users, setUsers] = useState<User[]>([])
+    const [agencies, setAgencies] = useState<Agency[]>([])
     const [loading, setLoading] = useState(true)
     const [searchTerm, setSearchTerm] = useState("")
 
     // Modal states
     const [isDialogOpen, setIsDialogOpen] = useState(false)
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+    const [isDetailOpen, setIsDetailOpen] = useState(false)
     const [selectedUser, setSelectedUser] = useState<User | null>(null)
     const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -59,24 +70,30 @@ export default function UsersPage() {
         name: "",
         email: "",
         password: "",
-        role: "CUSTOMER"
+        role: "CUSTOMER",
+        phone: "",
+        agency_id: "null",
+        status: "ACTIVE"
     })
 
     useEffect(() => {
-        fetchUsers()
+        fetchData()
     }, [])
 
-    const fetchUsers = async () => {
+    const fetchData = async () => {
         try {
             setLoading(true)
-            const response = await fetch("/api/admin/users")
-            if (response.ok) {
-                const data = await response.json()
-                setUsers(data)
-            }
+            const [usersRes, agenciesRes] = await Promise.all([
+                fetch("/api/admin/users"),
+                fetch("/api/admin/agencies")
+            ])
+            const usersData = await usersRes.json()
+            const agenciesData = await agenciesRes.json()
+            setUsers(usersData)
+            setAgencies(agenciesData)
         } catch (error) {
             console.error("Error:", error)
-            toast.error("Error al cargar usuarios")
+            toast.error("Error al cargar datos")
         } finally {
             setLoading(false)
         }
@@ -88,7 +105,10 @@ export default function UsersPage() {
             name: "",
             email: "",
             password: "",
-            role: "CUSTOMER"
+            role: "CUSTOMER",
+            phone: "",
+            agency_id: "null",
+            status: "ACTIVE"
         })
         setIsDialogOpen(true)
     }
@@ -98,10 +118,18 @@ export default function UsersPage() {
         setFormData({
             name: user.name,
             email: user.email,
-            password: "", // Contraseña vacía por seguridad en edición
-            role: user.role
+            password: "",
+            role: user.role,
+            phone: user.phone || "",
+            agency_id: user.agency_id?.toString() || "null",
+            status: user.status
         })
         setIsDialogOpen(true)
+    }
+
+    const handleViewDetail = (user: User) => {
+        setSelectedUser(user)
+        setIsDetailOpen(true)
     }
 
     const handleDeleteClick = (user: User) => {
@@ -119,17 +147,22 @@ export default function UsersPage() {
 
         const method = selectedUser ? "PUT" : "POST"
 
+        const payload = {
+            ...formData,
+            agency_id: formData.agency_id === "null" ? null : parseInt(formData.agency_id)
+        }
+
         try {
             const response = await fetch(url, {
                 method,
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(formData),
+                body: JSON.stringify(payload),
             })
 
             if (response.ok) {
                 toast.success(selectedUser ? "Usuario actualizado" : "Usuario creado")
                 setIsDialogOpen(false)
-                fetchUsers()
+                fetchData()
             } else {
                 const error = await response.json()
                 toast.error(error.error || "Error en la operación")
@@ -153,7 +186,7 @@ export default function UsersPage() {
             if (response.ok) {
                 toast.success("Usuario eliminado")
                 setIsDeleteDialogOpen(false)
-                fetchUsers()
+                fetchData()
             } else {
                 toast.error("No se pudo eliminar el usuario")
             }
@@ -194,7 +227,7 @@ export default function UsersPage() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">Gestión de Usuarios</h1>
-                    <p className="text-gray-600 mt-1">Administra accesos y roles del sistema</p>
+                    <p className="text-gray-600 mt-1">Administra accesos, roles y agencias del sistema</p>
                 </div>
                 <div className="flex gap-2">
                     <Button variant="outline" onClick={() => exportToCSV(users, 'usuarios')} className="gap-2">
@@ -232,8 +265,9 @@ export default function UsersPage() {
                             <thead>
                                 <tr className="bg-gray-50/50 text-xs uppercase text-gray-500 font-semibold border-b">
                                     <th className="text-left py-4 px-6">Información</th>
+                                    <th className="text-left py-4 px-6">Agencia</th>
                                     <th className="text-left py-4 px-6">Rol</th>
-                                    <th className="text-left py-4 px-6">Registro</th>
+                                    <th className="text-left py-4 px-6">Estado</th>
                                     <th className="text-right py-4 px-6">Acciones</th>
                                 </tr>
                             </thead>
@@ -254,18 +288,30 @@ export default function UsersPage() {
                                             </div>
                                         </td>
                                         <td className="py-4 px-6">
+                                            <div className="text-sm text-gray-700 font-medium">
+                                                {user.agencies?.name || "Sin Agencia"}
+                                            </div>
+                                        </td>
+                                        <td className="py-4 px-6">
                                             <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${getRoleBadge(user.role)}`}>
                                                 {user.role}
                                             </span>
                                         </td>
                                         <td className="py-4 px-6">
-                                            <div className="text-sm text-gray-600 flex items-center gap-1">
-                                                <Calendar className="w-3 h-3" />
-                                                {new Date(user.created_at).toLocaleDateString()}
-                                            </div>
+                                            <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${user.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                                {user.status}
+                                            </span>
                                         </td>
                                         <td className="py-4 px-6">
                                             <div className="flex items-center justify-end gap-1">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="rounded-full text-gray-500 hover:text-primary"
+                                                    onClick={() => handleViewDetail(user)}
+                                                >
+                                                    <Info className="w-4 h-4" />
+                                                </Button>
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
@@ -288,7 +334,7 @@ export default function UsersPage() {
                                 ))}
                                 {filteredUsers.length === 0 && (
                                     <tr>
-                                        <td colSpan={4} className="py-12 text-center">
+                                        <td colSpan={5} className="py-12 text-center">
                                             <UserIcon className="w-12 h-12 mx-auto text-gray-300 mb-3" />
                                             <p className="text-gray-500">No se encontraron usuarios</p>
                                         </td>
@@ -302,7 +348,7 @@ export default function UsersPage() {
 
             {/* Create/Edit Dialog */}
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogContent className="sm:max-w-[450px]">
+                <DialogContent className="sm:max-w-[500px]">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             {selectedUser ? <Edit className="w-5 h-5 text-primary" /> : <Plus className="w-5 h-5 text-primary" />}
@@ -313,30 +359,86 @@ export default function UsersPage() {
                         </DialogDescription>
                     </DialogHeader>
                     <form onSubmit={handleSubmit} className="space-y-4 py-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="name">Nombre Completo</Label>
-                            <Input
-                                id="name"
-                                value={formData.name}
-                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                placeholder="Ej: Juan Pérez"
-                                required
-                            />
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="name">Nombre Completo</Label>
+                                <Input
+                                    id="name"
+                                    value={formData.name}
+                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                    placeholder="Ej: Juan Pérez"
+                                    required
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="email">Correo Electrónico</Label>
+                                <Input
+                                    id="email"
+                                    type="email"
+                                    value={formData.email}
+                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                    placeholder="juan@ejemplo.com"
+                                    required
+                                />
+                            </div>
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="email">Correo Electrónico</Label>
-                            <Input
-                                id="email"
-                                type="email"
-                                value={formData.email}
-                                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                placeholder="juan@ejemplo.com"
-                                required
-                            />
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="phone">Teléfono</Label>
+                                <Input
+                                    id="phone"
+                                    value={formData.phone}
+                                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                    placeholder="55..."
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="role">Rol</Label>
+                                <select
+                                    id="role"
+                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                    value={formData.role}
+                                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                                >
+                                    <option value="ADMIN">Administrador</option>
+                                    <option value="AGENCY_ADMIN">Admin Agencia</option>
+                                    <option value="AGENT">Agente</option>
+                                    <option value="SUPPORT">Soporte</option>
+                                    <option value="CUSTOMER">Cliente</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="agency_id">Agencia</Label>
+                                <select
+                                    id="agency_id"
+                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                    value={formData.agency_id}
+                                    onChange={(e) => setFormData({ ...formData, agency_id: e.target.value })}
+                                >
+                                    <option value="null">Sin Agencia</option>
+                                    {agencies.map(a => (
+                                        <option key={a.id} value={a.id}>{a.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="status">Estado</Label>
+                                <select
+                                    id="status"
+                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                    value={formData.status}
+                                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                                >
+                                    <option value="ACTIVE">Activo</option>
+                                    <option value="BLOCKED">Bloqueado</option>
+                                </select>
+                            </div>
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="password">
-                                {selectedUser ? "Nueva Contraseña (opcional)" : "Contraseña"}
+                                {selectedUser ? "Nueva Contraseña (opcional)" : "Contraseña *"}
                             </Label>
                             <Input
                                 id="password"
@@ -346,24 +448,6 @@ export default function UsersPage() {
                                 placeholder={selectedUser ? "Dejar en blanco para no cambiar" : "Mínimo 6 caracteres"}
                                 required={!selectedUser}
                             />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="role">Rol de Usuario</Label>
-                            <Select
-                                value={formData.role}
-                                onValueChange={(value) => setFormData({ ...formData, role: value })}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Selecciona un rol" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="ADMIN">Administrador</SelectItem>
-                                    <SelectItem value="AGENCY_ADMIN">Admin Agencia</SelectItem>
-                                    <SelectItem value="AGENT">Agente</SelectItem>
-                                    <SelectItem value="SUPPORT">Soporte</SelectItem>
-                                    <SelectItem value="CUSTOMER">Cliente</SelectItem>
-                                </SelectContent>
-                            </Select>
                         </div>
                         <DialogFooter className="pt-4">
                             <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
@@ -375,6 +459,47 @@ export default function UsersPage() {
                             </Button>
                         </DialogFooter>
                     </form>
+                </DialogContent>
+            </Dialog>
+
+            {/* Detail Modal */}
+            <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Detalle del Usuario</DialogTitle>
+                    </DialogHeader>
+                    {selectedUser && (
+                        <div className="space-y-4">
+                            <div className="grid grid-cols-2 gap-y-3 text-sm border p-4 rounded-lg bg-gray-50/50">
+                                <span className="text-muted-foreground">ID:</span>
+                                <span className="font-semibold">{selectedUser.id}</span>
+
+                                <span className="text-muted-foreground">Nombre:</span>
+                                <span className="font-semibold">{selectedUser.name}</span>
+
+                                <span className="text-muted-foreground">Email:</span>
+                                <span className="font-semibold">{selectedUser.email}</span>
+
+                                <span className="text-muted-foreground">Teléfono:</span>
+                                <span className="font-semibold">{selectedUser.phone || "-"}</span>
+
+                                <span className="text-muted-foreground">Rol:</span>
+                                <span className="font-semibold">{selectedUser.role}</span>
+
+                                <span className="text-muted-foreground">Agencia:</span>
+                                <span className="font-semibold">{selectedUser.agencies?.name || "Sin Agencia"}</span>
+
+                                <span className="text-muted-foreground">Estado:</span>
+                                <span className="font-semibold">{selectedUser.status}</span>
+
+                                <span className="text-muted-foreground">Fecha registro:</span>
+                                <span className="font-semibold">{new Date(selectedUser.registered_at).toLocaleString()}</span>
+                            </div>
+                        </div>
+                    )}
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsDetailOpen(false)}>Cerrar</Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
 
