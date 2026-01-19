@@ -10,7 +10,7 @@ export function exportToCSV(data: any[], filename: string) {
     }
 
     // Obtener cabeceras (keys del primer objeto)
-    const headers = Object.keys(data[0]);
+    const headers = Object.keys(data[0]).filter(key => !['password', 'password_hash'].includes(key));
 
     // Crear filas
     const csvRows = [

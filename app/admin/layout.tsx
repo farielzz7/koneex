@@ -158,7 +158,7 @@ export default function AdminLayout({
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+                            className="fixed inset-0 bg-black/50 z-[90] lg:hidden"
                             onClick={() => setSidebarOpen(false)}
                         />
                         <motion.div
@@ -166,7 +166,7 @@ export default function AdminLayout({
                             animate={{ x: 0 }}
                             exit={{ x: "-100%" }}
                             transition={{ type: "tween", duration: 0.3 }}
-                            className="fixed left-0 top-0 bottom-0 w-[280px] bg-white z-50 shadow-2xl lg:hidden"
+                            className="fixed left-0 top-0 bottom-0 w-[280px] bg-white z-[100] shadow-2xl lg:hidden"
                         >
                             <div className="flex flex-col h-full">
                                 {/* Header */}
@@ -210,10 +210,10 @@ export default function AdminLayout({
                                             <img src={user.avatar} alt={user.name} className="w-8 h-8 rounded-full" />
                                         )}
                                         <div className="flex-1 min-w-0">
-                                            <p className="text-sm font-medium text-gray-900 truncate">
+                                            <p className="text-sm font-medium text-gray-900 break-words">
                                                 {user?.name}
                                             </p>
-                                            <p className="text-xs text-gray-500 truncate">
+                                            <p className="text-xs text-gray-500 break-all">
                                                 {user?.email}
                                             </p>
                                         </div>
