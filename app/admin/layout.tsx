@@ -1,7 +1,9 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
+import { useAuth } from "@/lib/auth-context"
+import { useEffect } from "react"
 import { cn } from "@/lib/utils"
 import {
     LayoutDashboard,
@@ -16,6 +18,8 @@ import {
     Menu,
     X,
     Building2,
+    Loader2,
+    LogOut,
 } from "lucide-react"
 import { useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
@@ -41,16 +45,44 @@ export default function AdminLayout({
     children: React.ReactNode
 }) {
     const pathname = usePathname()
+    const router = useRouter()
+    const { user, isAuthenticated, isLoading, setRedirectUrl, logout } = useAuth()
     const [sidebarOpen, setSidebarOpen] = useState(false)
+
+    useEffect(() => {
+        if (!isLoading) {
+            if (!isAuthenticated) {
+                setRedirectUrl(pathname)
+                router.push("/login")
+            } else if (user?.role !== "ADMIN") {
+                // Not authorized: logout and redirect to login
+                logout()
+                router.push("/login")
+            }
+        }
+    }, [isLoading, isAuthenticated, user, router, pathname, setRedirectUrl, logout])
+
+    if (isLoading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gray-50">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+        )
+    }
+
+    if (!isAuthenticated) {
+        return null // Evitar flash de contenido protegido
+    }
 
     return (
         <div className="min-h-screen bg-gray-50">
             {/* Mobile Header */}
-            <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b border-gray-200 z-40 flex items-center justify-between px-4">
+            <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b border-gray-200 z-30 flex items-center justify-between px-4">
                 <h1 className="text-lg font-bold text-primary">KONEEX Admin</h1>
                 <button
                     onClick={() => setSidebarOpen(!sidebarOpen)}
                     className="p-2 rounded-lg hover:bg-gray-100"
+                    aria-label="Toggle Menu"
                 >
                     <Menu className="w-6 h-6" />
                 </button>
@@ -87,7 +119,30 @@ export default function AdminLayout({
                     </nav>
 
                     {/* Footer */}
-                    <div className="p-4 border-t border-gray-200">
+                    <div className="p-4 border-t border-gray-200 space-y-4">
+                        <div className="flex items-center gap-3 px-2">
+                            {user?.avatar && (
+                                <img src={user.avatar} alt={user.name} className="w-8 h-8 rounded-full" />
+                            )}
+                            <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-gray-900 truncate">
+                                    {user?.name}
+                                </p>
+                                <p className="text-xs text-gray-500 truncate">
+                                    {user?.email}
+                                </p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => {
+                                logout()
+                                router.push("/login")
+                            }}
+                            className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-red-600 rounded-lg hover:bg-red-50 transition-colors w-full"
+                        >
+                            <LogOut className="w-5 h-5" />
+                            Cerrar Sesión
+                        </button>
                         <p className="text-xs text-gray-500 text-center">
                             Panel de Administración v1.0
                         </p>
@@ -149,7 +204,30 @@ export default function AdminLayout({
                                 </nav>
 
                                 {/* Footer */}
-                                <div className="p-4 border-t border-gray-200">
+                                <div className="p-4 border-t border-gray-200 space-y-4">
+                                    <div className="flex items-center gap-3 px-2">
+                                        {user?.avatar && (
+                                            <img src={user.avatar} alt={user.name} className="w-8 h-8 rounded-full" />
+                                        )}
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-medium text-gray-900 truncate">
+                                                {user?.name}
+                                            </p>
+                                            <p className="text-xs text-gray-500 truncate">
+                                                {user?.email}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            logout()
+                                            router.push("/login")
+                                        }}
+                                        className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-red-600 rounded-lg hover:bg-red-50 transition-colors w-full"
+                                    >
+                                        <LogOut className="w-5 h-5" />
+                                        Cerrar Sesión
+                                    </button>
                                     <p className="text-xs text-gray-500 text-center">
                                         Panel de Administración v1.0
                                     </p>

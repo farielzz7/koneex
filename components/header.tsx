@@ -1,8 +1,14 @@
 "use client"
 
 import { Logo } from "./logo"
-import { Menu, MessageCircle, MapPin, X } from "lucide-react"
+import { Menu, MessageCircle, MapPin, X, ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import Link from "next/link"
 import { useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
@@ -20,17 +26,25 @@ export function Header() {
             </Link>
 
             <nav className="hidden lg:flex items-center gap-8">
-              <Link href="/paquetes" className="text-sm font-medium text-text hover:text-primary transition-colors">
-                Paquetes
-              </Link>
-              <Link href="/destacados" className="text-sm font-medium text-text hover:text-primary transition-colors">
-                Destacados
-              </Link>
+              <DropdownMenu>
+                <DropdownMenuTrigger className="flex items-center gap-1 text-sm font-medium text-text hover:text-primary transition-colors focus:outline-none">
+                  Paquetes <ChevronDown className="w-4 h-4" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  <DropdownMenuItem asChild>
+                    <Link href="/paquetes" className="w-full cursor-pointer">Ver todos los Paquetes</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/destacados" className="w-full cursor-pointer">Destacados</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/experiencias" className="w-full cursor-pointer">Experiencias</Link>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
               <Link href="/internacionales" className="text-sm font-medium text-text hover:text-primary transition-colors">
                 Internacionales
-              </Link>
-              <Link href="/experiencias" className="text-sm font-medium text-text hover:text-primary transition-colors">
-                Experiencias
               </Link>
               <Link href="/clientes" className="text-sm font-medium text-text hover:text-primary transition-colors">
                 Clientes
@@ -114,34 +128,39 @@ export function Header() {
               </div>
 
               <nav className="flex-1 flex flex-col p-6 space-y-4">
-                <Link
-                  href="/paquetes"
-                  className="text-lg font-bold text-text hover:text-primary transition-colors border-b border-border/50 pb-2 flex items-center justify-between group"
-                  onClick={() => setShowMobileMenu(false)}
-                >
-                  Paquetes
-                  <motion.span initial={{ x: -10, opacity: 0 }} whileHover={{ x: 0, opacity: 1 }}>→</motion.span>
-                </Link>
-                <Link
-                  href="/destacados"
-                  className="text-lg font-bold text-text hover:text-primary transition-colors border-b border-border/50 pb-2 flex items-center justify-between group"
-                  onClick={() => setShowMobileMenu(false)}
-                >
-                  Destacados
-                </Link>
+                <div className="border-b border-border/50 pb-2">
+                  <p className="text-lg font-bold text-text mb-2">Paquetes</p>
+                  <div className="pl-4 flex flex-col gap-2">
+                    <Link
+                      href="/paquetes"
+                      className="text-base text-text-muted hover:text-primary transition-colors"
+                      onClick={() => setShowMobileMenu(false)}
+                    >
+                      Ver todos
+                    </Link>
+                    <Link
+                      href="/destacados"
+                      className="text-base text-text-muted hover:text-primary transition-colors"
+                      onClick={() => setShowMobileMenu(false)}
+                    >
+                      Destacados
+                    </Link>
+                    <Link
+                      href="/experiencias"
+                      className="text-base text-text-muted hover:text-primary transition-colors"
+                      onClick={() => setShowMobileMenu(false)}
+                    >
+                      Experiencias
+                    </Link>
+                  </div>
+                </div>
+
                 <Link
                   href="/internacionales"
                   className="text-lg font-bold text-text hover:text-primary transition-colors border-b border-border/50 pb-2 flex items-center justify-between group"
                   onClick={() => setShowMobileMenu(false)}
                 >
                   Internacionales
-                </Link>
-                <Link
-                  href="/experiencias"
-                  className="text-lg font-bold text-text hover:text-primary transition-colors border-b border-border/50 pb-2"
-                  onClick={() => setShowMobileMenu(false)}
-                >
-                  Experiencias
                 </Link>
                 <Link
                   href="/clientes"

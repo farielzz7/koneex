@@ -2,9 +2,15 @@
 
 import { MessageCircle, X } from "lucide-react"
 import { useState } from "react"
+import { usePathname } from "next/navigation"
 
 export function WhatsAppFloatingButton() {
   const [showTooltip, setShowTooltip] = useState(true)
+  const pathname = usePathname()
+
+  if (pathname?.startsWith("/admin")) {
+    return null
+  }
 
   const whatsappNumber = "9993387710"
   const defaultMessage = "Hola koneex, necesito información sobre viajes..."

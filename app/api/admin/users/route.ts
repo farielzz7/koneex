@@ -10,6 +10,7 @@ export async function GET() {
             .select(`
                 *
             `)
+            .is('deleted_at', null)
             .order('registered_at', { ascending: false })
 
         if (error) throw error
@@ -28,7 +29,7 @@ export async function GET() {
 export async function POST(request: Request) {
     try {
         const body = await request.json()
-        const { email, name, password, role } = body
+        const { email, name, password, role, phone, status } = body
 
         if (!email || !name || !password) {
             return NextResponse.json(
@@ -47,7 +48,8 @@ export async function POST(request: Request) {
                 name,
                 password: hashedPassword,
                 role: (role as any) || 'CUSTOMER',
-                status: 'ACTIVE'
+                phone: phone || null,
+                status: status || 'ACTIVE'
             })
             .select()
             .single()

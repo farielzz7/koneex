@@ -9,10 +9,11 @@ interface Params {
 }
 
 // UPDATE user
-export async function PUT(request: Request, { params }: Params) {
+export async function PUT(request: Request, props: { params: Promise<Params['params']> }) {
     try {
+        const params = await props.params
         const body = await request.json()
-        const { email, name, password, role } = body
+        const { email, name, password, role, phone, status } = body
         const userId = parseInt(params.id)
 
         if (isNaN(userId)) {
@@ -26,6 +27,8 @@ export async function PUT(request: Request, { params }: Params) {
             email,
             name,
             role,
+            phone,
+            status,
             updated_at: new Date().toISOString()
         }
 
@@ -54,8 +57,9 @@ export async function PUT(request: Request, { params }: Params) {
 }
 
 // DELETE user
-export async function DELETE(request: Request, { params }: Params) {
+export async function DELETE(request: Request, props: { params: Promise<Params['params']> }) {
     try {
+        const params = await props.params
         const userId = parseInt(params.id)
 
         if (isNaN(userId)) {

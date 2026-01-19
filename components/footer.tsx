@@ -63,12 +63,7 @@ export function Footer() {
               </li>
               <li>
                 <Link href="/planeacion" className="text-text-muted hover:text-primary transition-colors">
-                  Planeación
-                </Link>
-              </li>
-              <li>
-                <Link href="/asesoramiento" className="text-text-muted hover:text-primary transition-colors">
-                  Asesoramiento
+                  Planeación y Asesoría
                 </Link>
               </li>
             </ul>
@@ -134,7 +129,7 @@ export function Footer() {
         </div>
 
         <div className="pt-6 md:pt-8 border-t border-border text-center text-xs md:text-sm text-text-muted">
-          <p>2024 Koneex. Todos los derechos reservados.</p>
+          <p>&copy; 2026 Koneex Agencia de Viajes. Todos los derechos reservados.</p>
         </div>
       </div>
     </footer>

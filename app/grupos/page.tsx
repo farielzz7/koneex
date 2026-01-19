@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge"
 import { Users, Heart, Sparkles, Calendar, MapPin, Clock, DollarSign, Check, MessageCircle } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
+import { Header } from "@/components/header"
+import { Footer } from "@/components/footer"
 
 const gruposTypes = [
   {
@@ -59,6 +61,7 @@ const paquetesGrupo = [
 export default function GruposPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-surface">
+      <Header />
       {/* Hero Section */}
       <section className="relative bg-gradient-to-br from-primary/20 via-accent/20 to-secondary/20 py-20">
         <div className="container mx-auto px-4">
@@ -281,6 +284,7 @@ export default function GruposPage() {
           </div>
         </div>
       </section>
+      <Footer />
     </div>
   )
 }

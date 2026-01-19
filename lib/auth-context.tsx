@@ -1,11 +1,14 @@
 "use client"
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
+import { supabase } from "@/lib/supabase"
+import bcrypt from "bcryptjs"
 
 interface User {
   id: string
   name: string
   email: string
+  role: "ADMIN" | "AGENT" | "CUSTOMER"
   avatar?: string
 }
 
@@ -27,57 +30,147 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [redirectAfterLogin, setRedirectAfterLogin] = useState<string | null>(null)
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("koneex_user")
-    if (storedUser) {
-      setUser(JSON.parse(storedUser))
+    const checkSession = async () => {
+      const storedUser = localStorage.getItem("koneex_user")
+      if (storedUser) {
+        try {
+          const parsedUser: User = JSON.parse(storedUser)
+          // Validate existing session against DB to ensure role/status is up to date
+          const { data: dbUser, error } = await supabase
+            .from('users')
+            .select('id, name, email, role, status')
+            .eq('id', Number(parsedUser.id))
+            .single()
+
+          if (dbUser && dbUser.status === 'ACTIVE' && !error) {
+            setUser({
+              id: dbUser.id.toString(),
+              name: dbUser.name,
+              email: dbUser.email,
+              role: dbUser.role as "ADMIN" | "AGENT" | "CUSTOMER",
+              avatar: `https://api.dicebear.com/7.x/adventurer/svg?seed=${dbUser.email}`
+            })
+          } else {
+            // Invalid session or blocked user
+            localStorage.removeItem("koneex_user")
+            setUser(null)
+          }
+        } catch (e) {
+          localStorage.removeItem("koneex_user")
+          setUser(null)
+        }
+      }
+      setIsLoading(false)
     }
+
+    checkSession()
+
     const savedRedirect = localStorage.getItem("koneex_redirect")
     if (savedRedirect) {
       setRedirectAfterLogin(savedRedirect)
     }
-    setIsLoading(false)
   }, [])
 
   const login = async (email: string, password: string): Promise<string> => {
     setIsLoading(true)
-    await new Promise((resolve) => setTimeout(resolve, 1000))
 
-    const mockUser: User = {
-      id: "1",
-      name: email.split("@")[0],
-      email,
-      avatar: `https://api.dicebear.com/7.x/adventurer/svg?seed=${email}`,
+    try {
+      const { data: dbUser, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', email)
+        .single()
+
+      if (error || !dbUser) {
+        throw new Error("Usuario no encontrado")
+      }
+
+      if (dbUser.status !== 'ACTIVE') {
+        throw new Error("Tu cuenta está desactivada")
+      }
+
+      if (!dbUser.password) {
+        throw new Error("Credenciales inválidas")
+      }
+
+      const isValid = await bcrypt.compare(password, dbUser.password)
+
+      if (!isValid) {
+        throw new Error("Contraseña incorrecta")
+      }
+
+      const userSession: User = {
+        id: dbUser.id.toString(),
+        name: dbUser.name,
+        email: dbUser.email,
+        role: dbUser.role as "ADMIN" | "AGENT" | "CUSTOMER",
+        avatar: `https://api.dicebear.com/7.x/adventurer/svg?seed=${email}`
+      }
+
+      setUser(userSession)
+      localStorage.setItem("koneex_user", JSON.stringify(userSession))
+
+      const redirect = redirectAfterLogin || (userSession.role === "ADMIN" ? "/admin" : "/")
+      localStorage.removeItem("koneex_redirect")
+      setRedirectAfterLogin(null)
+
+      return redirect
+
+    } catch (error: any) {
+      console.error("Login error:", error)
+      throw error.message || error
+    } finally {
+      setIsLoading(false)
     }
-
-    setUser(mockUser)
-    localStorage.setItem("koneex_user", JSON.stringify(mockUser))
-    setIsLoading(false)
-
-    const redirect = redirectAfterLogin || "/"
-    localStorage.removeItem("koneex_redirect")
-    setRedirectAfterLogin(null)
-    return redirect
   }
 
   const register = async (name: string, email: string, password: string): Promise<string> => {
     setIsLoading(true)
-    await new Promise((resolve) => setTimeout(resolve, 1000))
 
-    const mockUser: User = {
-      id: Date.now().toString(),
-      name,
-      email,
-      avatar: `https://api.dicebear.com/7.x/adventurer/svg?seed=${email}`,
+    try {
+      // 1. Hash password
+      const hashedPassword = await bcrypt.hash(password, 10)
+
+      // 2. Insert user
+      const { data: newUser, error } = await supabase
+        .from('users')
+        .insert([
+          {
+            name,
+            email,
+            password: hashedPassword,
+            role: 'CUSTOMER',
+            status: 'ACTIVE'
+          }
+        ])
+        .select()
+        .single()
+
+      if (error) {
+        if (error.code === '23505') throw new Error("El correo ya está registrado")
+        throw error
+      }
+
+      // 3. Auto-login
+      const userSession: User = {
+        id: newUser.id.toString(),
+        name: newUser.name,
+        email: newUser.email,
+        role: newUser.role as "ADMIN" | "AGENT" | "CUSTOMER",
+        avatar: `https://api.dicebear.com/7.x/adventurer/svg?seed=${newUser.email}`
+      }
+
+      setUser(userSession)
+      localStorage.setItem("koneex_user", JSON.stringify(userSession))
+
+      return "/"
+
+    } catch (error) {
+      console.error("Register error:", error)
+      throw error
+    } finally {
+      setIsLoading(false)
     }
-
-    setUser(mockUser)
-    localStorage.setItem("koneex_user", JSON.stringify(mockUser))
-    setIsLoading(false)
-
-    const redirect = redirectAfterLogin || "/"
-    localStorage.removeItem("koneex_redirect")
-    setRedirectAfterLogin(null)
-    return redirect
   }
 
   const logout = () => {

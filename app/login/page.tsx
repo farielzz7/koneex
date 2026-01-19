@@ -190,13 +190,6 @@ export default function LoginPage() {
               <Link href="/forgot-password" className="text-sm text-primary hover:text-primary-hover transition-colors">
                 ¿Olvidaste tu contraseña?
               </Link>
-
-              <div className="text-sm text-text-muted">
-                ¿No tienes cuenta?{" "}
-                <Link href="/registro" className="text-primary hover:text-primary-hover font-medium transition-colors">
-                  Regístrate aquí
-                </Link>
-              </div>
             </motion.div>
           </motion.div>
         </motion.div>

@@ -50,7 +50,7 @@ interface User {
 
 export default function UsersPage() {
     const [users, setUsers] = useState<User[]>([])
-
+    // agencies state removed
     const [loading, setLoading] = useState(true)
     const [searchTerm, setSearchTerm] = useState("")
 
@@ -68,7 +68,7 @@ export default function UsersPage() {
         password: "",
         role: "CUSTOMER",
         phone: "",
-
+        // agency_id removed
         status: "ACTIVE"
     })
 
@@ -82,7 +82,7 @@ export default function UsersPage() {
             const usersRes = await fetch("/api/admin/users")
             const usersData = await usersRes.json()
             setUsers(usersData)
-
+            // agenciesData removed
         } catch (error) {
             console.error("Error:", error)
             toast.error("Error al cargar datos")
@@ -114,7 +114,6 @@ export default function UsersPage() {
             role: user.role,
             phone: user.phone || "",
             status: user.status
-
         })
         setIsDialogOpen(true)
     }
@@ -216,17 +215,17 @@ export default function UsersPage() {
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Gestión de Usuarios</h1>
-                    <p className="text-gray-600 mt-1">Administra accesos, roles y agencias del sistema</p>
+                    <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Gestión de Usuarios</h1>
+                    <p className="text-sm sm:text-base text-gray-600 mt-1">Administra accesos y roles del sistema</p>
                 </div>
-                <div className="flex gap-2">
-                    <Button variant="outline" onClick={() => exportToCSV(users, 'usuarios')} className="gap-2">
+                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                    <Button variant="outline" onClick={() => exportToCSV(users, 'usuarios')} className="gap-2 w-full sm:w-auto justify-center">
                         <FileDown className="w-4 h-4" />
                         Exportar CSV
                     </Button>
-                    <Button onClick={handleCreateClick} className="gap-2">
+                    <Button onClick={handleCreateClick} className="gap-2 w-full sm:w-auto justify-center">
                         <Plus className="w-4 h-4" />
                         Nuevo Usuario
                     </Button>
@@ -252,8 +251,8 @@ export default function UsersPage() {
                     <CardTitle className="text-lg">Todos los Usuarios ({filteredUsers.length})</CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
-                    <div className="overflow-x-auto">
-                        <table className="w-full border-collapse">
+                    <div className="w-full overflow-x-auto">
+                        <table className="w-full border-collapse min-w-[800px]">
                             <thead>
                                 <tr className="bg-gray-50/50 text-xs uppercase text-gray-500 font-semibold border-b">
                                     <th className="text-left py-4 px-6">Información</th>

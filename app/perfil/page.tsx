@@ -21,14 +21,14 @@ export default function PerfilPage() {
     {
       id: "1",
       package: mockPackages[0],
-      fecha: "15 de Junio, 2024",
+      fecha: "15 de Junio, 2026",
       estado: "Confirmado",
       personas: 2,
     },
     {
       id: "2",
       package: mockPackages[1],
-      fecha: "22 de Agosto, 2024",
+      fecha: "22 de Agosto, 2026",
       estado: "Pendiente",
       personas: 2,
     },
@@ -339,7 +339,7 @@ export default function PerfilPage() {
                 <div className="space-y-4">
                   {[
                     { nombre: "Pasaporte", vencimiento: "15/05/2028", estado: "Válido" },
-                    { nombre: "Visa Schengen", vencimiento: "20/12/2024", estado: "Válido" },
+                    { nombre: "Visa Schengen", vencimiento: "20/12/2026", estado: "Válido" },
                     { nombre: "Certificado de Vacunación", vencimiento: "-", estado: "Actualizado" },
                   ].map((doc, i) => (
                     <div key={i} className="flex items-center justify-between p-4 border border-border rounded-lg">
