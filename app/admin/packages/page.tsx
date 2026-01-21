@@ -318,14 +318,15 @@ export default function PackagesPage() {
                                             <td className="py-3 px-4">{pkg._count?.departures || 0}</td>
                                             <td className="py-3 px-4">
                                                 <div className="flex items-center justify-end gap-1">
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        title="Editar"
-                                                        onClick={() => handleEditClick(pkg)}
-                                                    >
-                                                        <Edit className="w-4 h-4" />
-                                                    </Button>
+                                                    <Link href={`/admin/packages/${pkg.id}`}>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            title="Editar Completo"
+                                                        >
+                                                            <Edit className="w-4 h-4" />
+                                                        </Button>
+                                                    </Link>
                                                     <Button
                                                         variant="ghost"
                                                         size="sm"

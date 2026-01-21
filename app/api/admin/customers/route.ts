@@ -5,26 +5,27 @@ import { supabase } from "@/lib/supabase"
 export async function GET() {
     try {
         const { data: customers, error } = await supabase
-            .from('customers')
+            .from('users')
             .select(`
                 *,
-                users (
-                    name,
-                    email
-                ),
                 orders(count)
             `)
-            .order('created_at', { ascending: false })
-            // @ts-ignore
+            .eq('role', 'CUSTOMER')
             .is('deleted_at', null)
+            .order('created_at', { ascending: false })
 
         if (error) throw error
 
-        // Transform to match previous format
-        const formattedCustomers = customers?.map(customer => ({
-            ...customer,
-            user: customer.users,
-            _count: { orders: customer.orders?.[0]?.count || 0 }
+        // Transform to match UI expectation
+        const formattedCustomers = customers?.map(user => ({
+            id: user.id.toString(), // UI expects string
+            phone: user.phone,
+            createdAt: user.created_at,
+            user: {
+                name: user.name,
+                email: user.email
+            },
+            _count: { orders: user.orders?.[0]?.count || 0 }
         }))
 
         return NextResponse.json(formattedCustomers)
@@ -37,7 +38,7 @@ export async function GET() {
     }
 }
 
-// CREATE new customer (without password)
+// CREATE new customer (as a User with role CUSTOMER)
 export async function POST(request: Request) {
     try {
         const body = await request.json()
@@ -57,36 +58,47 @@ export async function POST(request: Request) {
             )
         }
 
-        // Create user first
+        // Generate a random temporary password or handled by invite flow (here simple hash)
+        // In a real app, you might trigger an email invite.
+        // For now, we set a default password that they should reset.
+        const defaultPassword = "password123"
+        // Note: In a real scenario, use bcrypt to hash this if not using Supabase Auth built-in
+        // But since we are using custom auth with bcrypt in this project:
+        const bcrypt = require('bcryptjs')
+        const hashedPassword = await bcrypt.hash(defaultPassword, 10)
+
+        // Create user
         const { data: user, error: userError } = await supabase
             .from('users')
             .insert({
                 name,
                 email,
+                password: hashedPassword,
                 role: 'CUSTOMER',
+                phone: phone || null,
+                status: 'ACTIVE'
             })
             .select()
             .single()
 
         if (userError) throw userError
 
-        // Create customer linked to user
-        const { data: customer, error: customerError } = await supabase
-            .from('customers')
-            .insert({
-                user_id: user.id,
-                phone: phone || null,
-            })
-            .select()
-            .single()
+        // Return user formatted as customer
+        return NextResponse.json({
+            id: user.id.toString(),
+            phone: user.phone,
+            createdAt: user.created_at,
+            user: {
+                name: user.name,
+                email: user.email
+            },
+            _count: { orders: 0 }
+        }, { status: 201 })
 
-        if (customerError) throw customerError
-
-        return NextResponse.json(customer, { status: 201 })
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error creating customer:", error)
         return NextResponse.json(
-            { error: "Error al crear cliente" },
+            { error: error?.message || "Error al crear cliente" },
             { status: 500 }
         )
     }

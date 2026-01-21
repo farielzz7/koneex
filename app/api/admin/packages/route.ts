@@ -8,25 +8,25 @@ export async function GET() {
             .from('packages')
             .select(`
                 *,
-                package_departures(count),
-                package_media(*)
+                destination:destinations(
+                    id,
+                    name,
+                    country,
+                    city
+                )
             `)
             .order('created_at', { ascending: false })
 
-        if (error) throw error
+        if (error) {
+            console.error("Supabase error:", error)
+            throw error
+        }
 
-        // Transform to meet UI expectations if needed
-        const formattedPackages = packages?.map(pkg => ({
-            ...pkg,
-            _count: { departures: pkg.package_departures?.[0]?.count || 0 },
-            primary_image: pkg.package_media?.find((m: any) => m.is_cover)?.url || pkg.package_media?.[0]?.url
-        }))
-
-        return NextResponse.json(formattedPackages)
+        return NextResponse.json(packages || [])
     } catch (error) {
         console.error("Error fetching packages:", error)
         return NextResponse.json(
-            { error: "Error al obtener paquetes" },
+            { error: "Error al obtener paquetes", details: error instanceof Error ? error.message : 'Unknown error' },
             { status: 500 }
         )
     }

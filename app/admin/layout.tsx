@@ -18,26 +18,70 @@ import {
     Menu,
     X,
     Building2,
+    FileText,
+    CreditCard,
+    Briefcase,
+    Image,
+    MessageSquare,
+    Users,
+    Settings,
     Loader2,
     LogOut,
+    Plus,
 } from "lucide-react"
 import { useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 
 const navigation = [
-    { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
-
-    { name: "Paquetes", href: "/admin/packages", icon: Package },
-    { name: "Salidas", href: "/admin/departures", icon: Calendar },
-    { name: "Hoteles", href: "/admin/hotels", icon: Hotel },
-    { name: "Aerolíneas", href: "/admin/airlines", icon: Plane },
-    { name: "Proveedores", href: "/admin/providers", icon: Building2 },
-    { name: "Clientes", href: "/admin/customers", icon: User },
-    { name: "Órdenes", href: "/admin/orders", icon: ShoppingCart },
-    { name: "Promociones", href: "/admin/promotions", icon: Tag },
-    { name: "Geografía", href: "/admin/geography", icon: Globe },
-    { name: "Usuarios", href: "/admin/users", icon: User },
+    {
+        title: "Principal",
+        items: [
+            { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
+        ]
+    },
+    {
+        title: "Ventas",
+        items: [
+            { name: "Dashboard", href: "/admin/sales", icon: LayoutDashboard },
+            { name: "Calendario", href: "/admin/sales/calendar", icon: Calendar },
+            { name: "Nueva Venta", href: "/admin/sales/new", icon: Plus },
+        ]
+    },
+    {
+        title: "Catálogo",
+        items: [
+            { name: "Destinos", href: "/admin/geography", icon: Globe },
+            { name: "Paquetes", href: "/admin/packages", icon: Package },
+            { name: "Salidas", href: "/admin/departures", icon: Calendar },
+            { name: "Servicios", href: "/admin/services", icon: Briefcase },
+            { name: "Hoteles", href: "/admin/hotels", icon: Hotel },
+            { name: "Aerolíneas", href: "/admin/airlines", icon: Plane },
+            { name: "Proveedores", href: "/admin/providers", icon: Building2 },
+            { name: "Promociones", href: "/admin/promotions", icon: Tag },
+        ]
+    },
+    {
+        title: "Clientes",
+        items: [
+            { name: "Clientes", href: "/admin/customers", icon: User },
+        ]
+    },
+    {
+        title: "Contenido",
+        items: [
+            { name: "Banners", href: "/admin/content/banners", icon: Image },
+            { name: "Testimonios", href: "/admin/content/testimonials", icon: MessageSquare },
+        ]
+    },
+    {
+        title: "Configuración",
+        items: [
+            { name: "Usuarios", href: "/admin/users", icon: Users },
+            { name: "Ajustes", href: "/admin/settings", icon: Settings },
+        ]
+    }
 ]
+
 
 export default function AdminLayout({
     children,
@@ -55,7 +99,6 @@ export default function AdminLayout({
                 setRedirectUrl(pathname)
                 router.push("/login")
             } else if (user?.role !== "ADMIN") {
-                // Not authorized: logout and redirect to login
                 logout()
                 router.push("/login")
             }
@@ -71,7 +114,7 @@ export default function AdminLayout({
     }
 
     if (!isAuthenticated) {
-        return null // Evitar flash de contenido protegido
+        return null
     }
 
     return (
@@ -97,25 +140,34 @@ export default function AdminLayout({
                     </div>
 
                     {/* Navigation */}
-                    <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
-                        {navigation.map((item) => {
-                            const isActive = pathname === item.href
-                            return (
-                                <Link
-                                    key={item.name}
-                                    href={item.href}
-                                    className={cn(
-                                        "flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors",
-                                        isActive
-                                            ? "bg-primary text-white"
-                                            : "text-gray-700 hover:bg-gray-100"
-                                    )}
-                                >
-                                    <item.icon className="w-5 h-5" />
-                                    {item.name}
-                                </Link>
-                            )
-                        })}
+                    <nav className="flex-1 px-4 py-6 space-y-6 overflow-y-auto">
+                        {navigation.map((group) => (
+                            <div key={group.title}>
+                                <h3 className="mb-2 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                    {group.title}
+                                </h3>
+                                <div className="space-y-1">
+                                    {group.items.map((item) => {
+                                        const isActive = pathname === item.href
+                                        return (
+                                            <Link
+                                                key={item.name}
+                                                href={item.href}
+                                                className={cn(
+                                                    "flex items-center gap-3 px-4 py-2 text-sm font-medium rounded-lg transition-colors",
+                                                    isActive
+                                                        ? "bg-primary text-white"
+                                                        : "text-gray-700 hover:bg-gray-100"
+                                                )}
+                                            >
+                                                <item.icon className="w-5 h-5" />
+                                                {item.name}
+                                            </Link>
+                                        )
+                                    })}
+                                </div>
+                            </div>
+                        ))}
                     </nav>
 
                     {/* Footer */}
@@ -180,27 +232,40 @@ export default function AdminLayout({
                                     </button>
                                 </div>
 
+
+
                                 {/* Navigation */}
-                                <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
-                                    {navigation.map((item) => {
-                                        const isActive = pathname === item.href
-                                        return (
-                                            <Link
-                                                key={item.name}
-                                                href={item.href}
-                                                onClick={() => setSidebarOpen(false)}
-                                                className={cn(
-                                                    "flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors",
-                                                    isActive
-                                                        ? "bg-primary text-white"
-                                                        : "text-gray-700 hover:bg-gray-100"
-                                                )}
-                                            >
-                                                <item.icon className="w-5 h-5" />
-                                                {item.name}
-                                            </Link>
-                                        )
-                                    })}
+                                <nav className="flex-1 px-4 py-6 space-y-6 overflow-y-auto">
+                                    {navigation.map((group) => (
+                                        <div key={group.title}>
+                                            <h3 className="mb-2 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                                {group.title}
+                                            </h3>
+                                            <div className="space-y-1">
+                                                {group.items.map((item) => {
+                                                    const isActive = pathname === item.href
+                                                    return (
+                                                        <Link
+                                                            key={item.name}
+                                                            href={item.href}
+                                                            onClick={(e) => {
+                                                                if (sidebarOpen) setSidebarOpen(false)
+                                                            }}
+                                                            className={cn(
+                                                                "flex items-center gap-3 px-4 py-2 text-sm font-medium rounded-lg transition-colors",
+                                                                isActive
+                                                                    ? "bg-primary text-white"
+                                                                    : "text-gray-700 hover:bg-gray-100"
+                                                            )}
+                                                        >
+                                                            <item.icon className="w-5 h-5" />
+                                                            {item.name}
+                                                        </Link>
+                                                    )
+                                                })}
+                                            </div>
+                                        </div>
+                                    ))}
                                 </nav>
 
                                 {/* Footer */}

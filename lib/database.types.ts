@@ -9,73 +9,243 @@ export type Json =
 export interface Database {
     public: {
         Tables: {
-            agencies: {
+            services: {
                 Row: {
-                    address_line1: string | null
-                    address_line2: string | null
-                    city_id: number | null
-                    created_at: string
-                    default_commission_pct: number
-                    default_markup_amount: number
-                    deleted_at: string | null
-                    email: string | null
                     id: number
-                    legal_name: string | null
                     name: string
-                    phone: string | null
-                    postal_code: string | null
-                    pricing_model: Database["public"]["Enums"]["pricing_model"]
-                    rfc: string | null
-                    status: Database["public"]["Enums"]["agency_status"]
+                    type: "HOTEL" | "TOUR" | "TRANSPORT" | "INSURANCE" | "OTHER"
+                    provider_id: number | null
+                    description: string | null
+                    cost_amount: number | null
+                    currency_code: string | null
+                    status: "ACTIVE" | "INACTIVE"
+                    created_at: string
                     updated_at: string
-                    website: string | null
                 }
                 Insert: {
-                    address_line1?: string | null
-                    address_line2?: string | null
-                    city_id?: number | null
-                    created_at?: string
-                    default_commission_pct?: number
-                    default_markup_amount?: number
-                    deleted_at?: string | null
-                    email?: string | null
                     id?: number
-                    legal_name?: string | null
                     name: string
-                    phone?: string | null
-                    postal_code?: string | null
-                    pricing_model?: Database["public"]["Enums"]["pricing_model"]
-                    rfc?: string | null
-                    status?: Database["public"]["Enums"]["agency_status"]
+                    type: "HOTEL" | "TOUR" | "TRANSPORT" | "INSURANCE" | "OTHER"
+                    provider_id?: number | null
+                    description?: string | null
+                    cost_amount?: number | null
+                    currency_code?: string | null
+                    status?: "ACTIVE" | "INACTIVE"
+                    created_at?: string
                     updated_at?: string
-                    website?: string | null
                 }
                 Update: {
-                    address_line1?: string | null
-                    address_line2?: string | null
-                    city_id?: number | null
-                    created_at?: string
-                    default_commission_pct?: number
-                    default_markup_amount?: number
-                    deleted_at?: string | null
-                    email?: string | null
                     id?: number
-                    legal_name?: string | null
                     name?: string
-                    phone?: string | null
-                    postal_code?: string | null
-                    pricing_model?: Database["public"]["Enums"]["pricing_model"]
-                    rfc?: string | null
-                    status?: Database["public"]["Enums"]["agency_status"]
+                    type?: "HOTEL" | "TOUR" | "TRANSPORT" | "INSURANCE" | "OTHER"
+                    provider_id?: number | null
+                    description?: string | null
+                    cost_amount?: number | null
+                    currency_code?: string | null
+                    status?: "ACTIVE" | "INACTIVE"
+                    created_at?: string
                     updated_at?: string
-                    website?: string | null
                 }
                 Relationships: [
                     {
-                        foreignKeyName: "agencies_city_id_fkey"
-                        columns: ["city_id"]
-                        isOneToOne: false
-                        referencedRelation: "cities"
+                        foreignKeyName: "services_provider_id_fkey"
+                        columns: ["provider_id"]
+                        referencedRelation: "providers"
+                        referencedColumns: ["id"]
+                    }
+                ]
+            }
+            seasons: {
+                Row: {
+                    id: number
+                    name: string
+                    start_date: string
+                    end_date: string
+                    is_active: boolean
+                    created_at: string
+                }
+                Insert: {
+                    id?: number
+                    name: string
+                    start_date: string
+                    end_date: string
+                    is_active?: boolean
+                    created_at?: string
+                }
+                Update: {
+                    id?: number
+                    name?: string
+                    start_date?: string
+                    end_date?: string
+                    is_active?: boolean
+                    created_at?: string
+                }
+                Relationships: []
+            }
+            package_prices: {
+                Row: {
+                    id: number
+                    package_id: number
+                    season_id: number | null
+                    occupancy_type: "SGL" | "DBL" | "TPL" | "CPL" | "CHILD" | "INFANT"
+                    currency_code: string
+                    cost_amount: number | null
+                    price_amount: number
+                    created_at: string
+                    updated_at: string
+                }
+                Insert: {
+                    id?: number
+                    package_id: number
+                    season_id?: number | null
+                    occupancy_type: "SGL" | "DBL" | "TPL" | "CPL" | "CHILD" | "INFANT"
+                    currency_code: string
+                    cost_amount?: number | null
+                    price_amount?: number
+                    created_at?: string
+                    updated_at?: string
+                }
+                Update: {
+                    id?: number
+                    package_id?: number
+                    season_id?: number | null
+                    occupancy_type?: "SGL" | "DBL" | "TPL" | "CPL" | "CHILD" | "INFANT"
+                    currency_code?: string
+                    cost_amount?: number | null
+                    price_amount?: number
+                    created_at?: string
+                    updated_at?: string
+                }
+                Relationships: [
+                    {
+                        foreignKeyName: "package_prices_package_id_fkey"
+                        columns: ["package_id"]
+                        referencedRelation: "packages"
+                        referencedColumns: ["id"]
+                    },
+                    {
+                        foreignKeyName: "package_prices_season_id_fkey"
+                        columns: ["season_id"]
+                        referencedRelation: "seasons"
+                        referencedColumns: ["id"]
+                    }
+                ]
+            }
+            quotes: {
+                Row: {
+                    id: number
+                    quote_number: string
+                    user_id: number | null
+                    lead_name: string | null
+                    lead_email: string | null
+                    lead_phone: string | null
+                    status: "DRAFT" | "SENT" | "ACCEPTED" | "REJECTED" | "EXPIRED"
+                    total_amount: number | null
+                    currency_code: string | null
+                    valid_until: string | null
+                    notes: string | null
+                    created_at: string
+                    updated_at: string
+                }
+                Insert: {
+                    id?: number
+                    quote_number?: string
+                    user_id?: number | null
+                    lead_name?: string | null
+                    lead_email?: string | null
+                    lead_phone?: string | null
+                    status?: "DRAFT" | "SENT" | "ACCEPTED" | "REJECTED" | "EXPIRED"
+                    total_amount?: number | null
+                    currency_code?: string | null
+                    valid_until?: string | null
+                    notes?: string | null
+                    created_at?: string
+                    updated_at?: string
+                }
+                Update: {
+                    id?: number
+                    quote_number?: string
+                    user_id?: number | null
+                    lead_name?: string | null
+                    lead_email?: string | null
+                    lead_phone?: string | null
+                    status?: "DRAFT" | "SENT" | "ACCEPTED" | "REJECTED" | "EXPIRED"
+                    total_amount?: number | null
+                    currency_code?: string | null
+                    valid_until?: string | null
+                    notes?: string | null
+                    created_at?: string
+                    updated_at?: string
+                }
+                Relationships: [
+                    {
+                        foreignKeyName: "quotes_user_id_fkey"
+                        columns: ["user_id"]
+                        referencedRelation: "users"
+                        referencedColumns: ["id"]
+                    }
+                ]
+            }
+            quote_items: {
+                Row: {
+                    id: number
+                    quote_id: number
+                    type: "PACKAGE" | "SERVICE"
+                    package_id: number | null
+                    service_id: number | null
+                    title: string
+                    description: string | null
+                    quantity: number | null
+                    unit_price: number | null
+                    total_price: number | null
+                    travel_date: string | null
+                    created_at: string
+                }
+                Insert: {
+                    id?: number
+                    quote_id: number
+                    type: "PACKAGE" | "SERVICE"
+                    package_id?: number | null
+                    service_id?: number | null
+                    title: string
+                    description?: string | null
+                    quantity?: number | null
+                    unit_price?: number | null
+                    total_price?: number | null
+                    travel_date?: string | null
+                    created_at?: string
+                }
+                Update: {
+                    id?: number
+                    quote_id?: number
+                    type?: "PACKAGE" | "SERVICE"
+                    package_id?: number | null
+                    service_id?: number | null
+                    title?: string
+                    description?: string | null
+                    quantity?: number | null
+                    unit_price?: number | null
+                    total_price?: number | null
+                    travel_date?: string | null
+                    created_at?: string
+                }
+                Relationships: [
+                    {
+                        foreignKeyName: "quote_items_quote_id_fkey"
+                        columns: ["quote_id"]
+                        referencedRelation: "quotes"
+                        referencedColumns: ["id"]
+                    },
+                    {
+                        foreignKeyName: "quote_items_package_id_fkey"
+                        columns: ["package_id"]
+                        referencedRelation: "packages"
+                        referencedColumns: ["id"]
+                    },
+                    {
+                        foreignKeyName: "quote_items_service_id_fkey"
+                        columns: ["service_id"]
+                        referencedRelation: "services"
                         referencedColumns: ["id"]
                     }
                 ]
