@@ -71,6 +71,7 @@ const navigation = [
         items: [
             { name: "Banners", href: "/admin/content/banners", icon: Image },
             { name: "Testimonios", href: "/admin/content/testimonials", icon: MessageSquare },
+            { name: "Redes Sociales", href: "/admin/content/social-testimonials", icon: MessageSquare },
         ]
     },
     {
