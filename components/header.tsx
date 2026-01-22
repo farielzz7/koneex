@@ -1,7 +1,7 @@
 "use client"
 
 import { Logo } from "./logo"
-import { Menu, MessageCircle, MapPin, X, ChevronDown } from "lucide-react"
+import { Menu, MessageCircle, MapPin, X, ChevronDown, Phone } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -18,21 +18,23 @@ export function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border transition-colors duration-300">
+      <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
         <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between h-16 md:h-20">
-            <Link href="/" className="flex-shrink-0 focus:outline-none">
+          <div className="flex items-center justify-between h-20">
+            {/* Logo */}
+            <Link href="/" className="flex-shrink-0 focus:outline-none py-3">
               <Logo size="md" />
             </Link>
 
-            <nav className="hidden lg:flex items-center gap-8">
+            {/* Desktop Navigation */}
+            <nav className="hidden lg:flex items-center gap-6 xl:gap-8">
               <DropdownMenu>
-                <DropdownMenuTrigger className="flex items-center gap-1 text-sm font-medium text-text hover:text-primary transition-colors focus:outline-none">
-                  Paquetes <ChevronDown className="w-4 h-4" />
+                <DropdownMenuTrigger className="flex items-center gap-1.5 text-sm font-medium text-gray-700 hover:text-primary transition-colors focus:outline-none py-2">
+                  Paquetes <ChevronDown className="w-3.5 h-3.5" />
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start">
+                <DropdownMenuContent align="start" className="w-48">
                   <DropdownMenuItem asChild>
-                    <Link href="/paquetes" className="w-full cursor-pointer">Ver todos los Paquetes</Link>
+                    <Link href="/paquetes" className="w-full cursor-pointer">Ver todos</Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link href="/destacados" className="w-full cursor-pointer">Destacados</Link>
@@ -43,18 +45,22 @@ export function Header() {
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              <Link href="/internacionales" className="text-sm font-medium text-text hover:text-primary transition-colors">
+              <Link href="/internacionales" className="text-sm font-medium text-gray-700 hover:text-primary transition-colors whitespace-nowrap">
                 Internacionales
               </Link>
-              <Link href="/clientes" className="text-sm font-medium text-text hover:text-primary transition-colors">
+              <Link href="/clientes" className="text-sm font-medium text-gray-700 hover:text-primary transition-colors">
                 Clientes
               </Link>
-              <Link href="/cotizacion" className="text-sm font-medium text-text hover:text-primary transition-colors">
+              <Link href="/cotizacion" className="text-sm font-medium text-gray-700 hover:text-primary transition-colors">
                 Cotización
               </Link>
-              <Link href="/grupos" className="text-sm font-medium text-text hover:text-primary transition-colors">
-                Viajes en Grupo
+              <Link href="/grupos" className="text-sm font-medium text-gray-700 hover:text-primary transition-colors whitespace-nowrap">
+                Grupos
               </Link>
+            </nav>
+
+            {/* CTA Buttons - Desktop */}
+            <div className="hidden lg:flex items-center gap-3">
               <button
                 onClick={() =>
                   window.open(
@@ -62,39 +68,35 @@ export function Header() {
                     "_blank",
                   )
                 }
-                className="flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-lg hover:bg-primary hover:text-white transition-colors font-medium"
+                className="flex items-center gap-2 px-4 py-2.5 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-all font-medium"
               >
                 <MapPin className="w-4 h-4" />
-                Ubicación
+                <span className="hidden xl:inline">Ubicación</span>
               </button>
               <button
                 onClick={() => window.open("https://wa.me/5219993387710?text=Hola koneex, necesito información", "_blank")}
-                className="flex items-center gap-2 px-4 py-2 bg-[#25D366] text-white rounded-lg hover:bg-[#20BA5A] transition-colors font-medium"
+                className="flex items-center gap-2 px-5 py-2.5 text-sm bg-[#25D366] text-white rounded-lg hover:bg-[#20BA5A] transition-all font-medium shadow-sm"
               >
                 <MessageCircle className="w-4 h-4" />
-                WhatsApp
+                <span>WhatsApp</span>
               </button>
-            </nav>
-
-            <div className="flex items-center">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="lg:hidden h-10 w-10 text-text"
-                onClick={() => {
-                  console.log("Toggle mobile menu:", !showMobileMenu)
-                  setShowMobileMenu(!showMobileMenu)
-                }}
-                aria-label="Menu principal"
-              >
-                <Menu className="w-6 h-6" />
-              </Button>
             </div>
+
+            {/* Mobile Menu Button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="lg:hidden h-10 w-10"
+              onClick={() => setShowMobileMenu(!showMobileMenu)}
+              aria-label="Menu principal"
+            >
+              <Menu className="w-6 h-6" />
+            </Button>
           </div>
         </div>
       </header>
 
-      {/* Mobile Menu - Placed outside the header to break the backdrop-blur stacking context */}
+      {/* Mobile Menu */}
       <AnimatePresence>
         {showMobileMenu && (
           <div className="fixed inset-0 z-[9999] lg:hidden">
@@ -107,15 +109,16 @@ export function Header() {
               onClick={() => setShowMobileMenu(false)}
             />
 
-            {/* Sidebar Content */}
+            {/* Sidebar */}
             <motion.div
               initial={{ x: "100%" }}
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="absolute right-0 top-0 bottom-0 w-[300px] bg-white shadow-2xl overflow-y-auto overflow-x-hidden flex flex-col"
+              className="absolute right-0 top-0 bottom-0 w-[300px] bg-white shadow-2xl overflow-y-auto"
             >
-              <div className="p-4 border-b border-border flex items-center justify-between sticky top-0 bg-white z-10">
+              {/* Header */}
+              <div className="p-4 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white z-10">
                 <Logo size="sm" />
                 <Button
                   variant="ghost"
@@ -127,27 +130,28 @@ export function Header() {
                 </Button>
               </div>
 
-              <nav className="flex-1 flex flex-col p-6 space-y-4">
-                <div className="border-b border-border/50 pb-2">
-                  <p className="text-lg font-bold text-text mb-2">Paquetes</p>
-                  <div className="pl-4 flex flex-col gap-2">
+              {/* Navigation */}
+              <nav className="flex flex-col p-6 space-y-4">
+                <div className="pb-3 border-b border-gray-200">
+                  <p className="text-lg font-bold text-gray-900 mb-3">Paquetes</p>
+                  <div className="pl-4 flex flex-col gap-3">
                     <Link
                       href="/paquetes"
-                      className="text-base text-text-muted hover:text-primary transition-colors"
+                      className="text-base text-gray-600 hover:text-primary transition-colors"
                       onClick={() => setShowMobileMenu(false)}
                     >
                       Ver todos
                     </Link>
                     <Link
                       href="/destacados"
-                      className="text-base text-text-muted hover:text-primary transition-colors"
+                      className="text-base text-gray-600 hover:text-primary transition-colors"
                       onClick={() => setShowMobileMenu(false)}
                     >
                       Destacados
                     </Link>
                     <Link
                       href="/experiencias"
-                      className="text-base text-text-muted hover:text-primary transition-colors"
+                      className="text-base text-gray-600 hover:text-primary transition-colors"
                       onClick={() => setShowMobileMenu(false)}
                     >
                       Experiencias
@@ -157,34 +161,35 @@ export function Header() {
 
                 <Link
                   href="/internacionales"
-                  className="text-lg font-bold text-text hover:text-primary transition-colors border-b border-border/50 pb-2 flex items-center justify-between group"
+                  className="text-lg font-bold text-gray-900 hover:text-primary transition-colors pb-3 border-b border-gray-200"
                   onClick={() => setShowMobileMenu(false)}
                 >
                   Internacionales
                 </Link>
                 <Link
                   href="/clientes"
-                  className="text-lg font-bold text-text hover:text-primary transition-colors border-b border-border/50 pb-2"
+                  className="text-lg font-bold text-gray-900 hover:text-primary transition-colors pb-3 border-b border-gray-200"
                   onClick={() => setShowMobileMenu(false)}
                 >
                   Clientes
                 </Link>
                 <Link
                   href="/cotizacion"
-                  className="text-lg font-bold text-text hover:text-primary transition-colors border-b border-border/50 pb-2"
+                  className="text-lg font-bold text-gray-900 hover:text-primary transition-colors pb-3 border-b border-gray-200"
                   onClick={() => setShowMobileMenu(false)}
                 >
                   Cotización
                 </Link>
                 <Link
                   href="/grupos"
-                  className="text-lg font-bold text-text hover:text-primary transition-colors border-b border-border/50 pb-2"
+                  className="text-lg font-bold text-gray-900 hover:text-primary transition-colors pb-3 border-b border-gray-200"
                   onClick={() => setShowMobileMenu(false)}
                 >
                   Viajes en Grupo
                 </Link>
 
-                <div className="pt-6 mt-auto space-y-3">
+                {/* CTA Buttons */}
+                <div className="pt-6 space-y-3">
                   <button
                     onClick={() => {
                       window.open(
@@ -193,7 +198,7 @@ export function Header() {
                       )
                       setShowMobileMenu(false)
                     }}
-                    className="w-full flex items-center justify-center gap-3 px-4 py-4 bg-primary text-white rounded-xl hover:bg-primary/90 transition-all font-bold shadow-lg shadow-primary/20"
+                    className="w-full flex items-center justify-center gap-3 px-4 py-4 bg-gray-100 text-gray-900 rounded-xl hover:bg-gray-200 transition-all font-semibold"
                   >
                     <MapPin className="w-5 h-5" />
                     Cómo llegar
@@ -203,7 +208,7 @@ export function Header() {
                       window.open("https://wa.me/5219993387710?text=Hola koneex, necesito información", "_blank")
                       setShowMobileMenu(false)
                     }}
-                    className="w-full flex items-center justify-center gap-3 px-4 py-4 bg-[#25D366] text-white rounded-xl hover:bg-[#20BA5A] transition-all font-bold shadow-lg shadow-green-500/20"
+                    className="w-full flex items-center justify-center gap-3 px-4 py-4 bg-[#25D366] text-white rounded-xl hover:bg-[#20BA5A] transition-all font-semibold shadow-lg shadow-green-500/20"
                   >
                     <MessageCircle className="w-5 h-5" />
                     WhatsApp

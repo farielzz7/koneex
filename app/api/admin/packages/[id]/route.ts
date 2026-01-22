@@ -16,17 +16,7 @@ export async function GET(
 
         const { data: pkg, error } = await supabase
             .from('packages')
-            .select(`
-                *,
-                package_media(*),
-                package_itinerary_days(*),
-                package_components(*),
-                package_rate_plans(
-                    *,
-                    package_rate_items(*)
-                ),
-                package_departures(*)
-            `)
+            .select('*')
             .eq('id', pkgId)
             .single()
 
@@ -59,30 +49,29 @@ export async function PUT(
         if (isNaN(pkgId)) return NextResponse.json({ error: "ID inválido" }, { status: 400 })
 
         const body = await request.json()
-        const {
-            title,
-            subtitle,
-            description,
-            short_description,
-            status,
-            product_type,
-            from_price,
-            currency_code
-        } = body
+
+        // Prepare update object - only include defined fields
+        const updateData: any = {
+            updated_at: new Date().toISOString()
+        }
+
+        // Map all possible fields
+        const allowedFields = [
+            'destination_id', 'title', 'slug', 'description', 'short_description',
+            'duration_days', 'duration_nights', 'price', 'currency_code',
+            'rating', 'group_size', 'featured', 'tags', 'images',
+            'includes', 'excludes', 'status'
+        ]
+
+        allowedFields.forEach(field => {
+            if (body[field] !== undefined) {
+                updateData[field] = body[field]
+            }
+        })
 
         const { data: pkg, error } = await supabase
             .from('packages')
-            .update({
-                title,
-                subtitle,
-                description,
-                short_description,
-                status: status || 'DRAFT',
-                product_type,
-                from_price,
-                currency_code,
-                updated_at: new Date().toISOString(),
-            })
+            .update(updateData)
             .eq('id', pkgId)
             .select()
             .single()
@@ -137,7 +126,7 @@ export async function PATCH(
         if (isNaN(pkgId)) return NextResponse.json({ error: "ID inválido" }, { status: 400 })
 
         const body = await request.json()
-        const { status } = body // 'DRAFT' | 'PUBLISHED' | 'PAUSED'
+        const { status } = body
 
         const { data: pkg, error } = await supabase
             .from('packages')

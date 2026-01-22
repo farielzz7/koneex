@@ -37,7 +37,7 @@ interface PackageData {
     subtitle: string | null
     description: string | null
     product_type: string
-    status: 'DRAFT' | 'PUBLISHED' | 'PAUSED'
+    status: 'DRAFT' | 'ACTIVE' | 'INACTIVE'
     created_at: string
     _count?: {
         departures: number
@@ -61,7 +61,7 @@ export default function PackagesPage() {
     const [editForm, setEditForm] = useState({
         title: "",
         description: "",
-        status: "DRAFT" as 'DRAFT' | 'PUBLISHED' | 'PAUSED',
+        status: "DRAFT" as 'DRAFT' | 'ACTIVE' | 'INACTIVE',
     })
 
     useEffect(() => {
@@ -175,13 +175,13 @@ export default function PackagesPage() {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    status: selectedPackage.status === 'PUBLISHED' ? 'PAUSED' : 'PUBLISHED',
+                    status: selectedPackage.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE',
                 }),
             })
 
             if (!response.ok) throw new Error("Error al cambiar estado")
 
-            const newStatus = selectedPackage.status === 'PUBLISHED' ? "pausado" : "publicado"
+            const newStatus = selectedPackage.status === 'ACTIVE' ? "desactivado" : "activado"
             toast.success(`Paquete ${newStatus}`, {
                 description: `"${selectedPackage.title}" ha sido ${newStatus}.`,
             })
@@ -305,7 +305,7 @@ export default function PackagesPage() {
                                             <td className="py-3 px-4 text-xs font-semibold">{pkg.product_type}</td>
                                             <td className="py-3 px-4">
                                                 <span
-                                                    className={`px-2 py-1 text-xs font-medium rounded-full ${pkg.status === 'PUBLISHED'
+                                                    className={`px-2 py-1 text-xs font-medium rounded-full ${pkg.status === 'ACTIVE'
                                                         ? "bg-green-100 text-green-800"
                                                         : pkg.status === 'DRAFT'
                                                             ? "bg-yellow-100 text-yellow-800"
@@ -318,21 +318,13 @@ export default function PackagesPage() {
                                             <td className="py-3 px-4">{pkg._count?.departures || 0}</td>
                                             <td className="py-3 px-4">
                                                 <div className="flex items-center justify-end gap-1">
-                                                    <Link href={`/admin/packages/${pkg.id}`}>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            title="Editar Completo"
-                                                        >
-                                                            <Edit className="w-4 h-4" />
-                                                        </Button>
-                                                    </Link>
+                                                    <Link href={`/admin/packages/${pkg.id}`}><Button variant="ghost" size="sm" title="Editar"><Edit className="w-4 h-4" /></Button></Link>
                                                     <Button
                                                         variant="ghost"
                                                         size="sm"
-                                                        title={pkg.status === 'PUBLISHED' ? "Pausar" : "Publicar"}
+                                                        title={pkg.status === 'ACTIVE' ? "Desactivar" : "Activar"}
                                                         onClick={() => handleToggleClick(pkg)}
-                                                        className={pkg.status === 'PUBLISHED' ? "text-orange-600 hover:text-orange-700" : "text-green-600 hover:text-green-700"}
+                                                        className={pkg.status === 'ACTIVE' ? "text-orange-600 hover:text-orange-700" : "text-green-600 hover:text-green-700"}
                                                     >
                                                         <Power className="w-4 h-4" />
                                                     </Button>
@@ -391,7 +383,7 @@ export default function PackagesPage() {
                         <div className="flex flex-col gap-2">
                             <Label>Estado del Catálogo</Label>
                             <div className="flex gap-2">
-                                {['DRAFT', 'PUBLISHED', 'PAUSED'].map((s) => (
+                                {['DRAFT', 'ACTIVE', 'INACTIVE'].map((s) => (
                                     <Button
                                         key={s}
                                         variant={editForm.status === s ? "default" : "outline"}
@@ -462,11 +454,11 @@ export default function PackagesPage() {
                 <AlertDialogContent>
                     <AlertDialogHeader>
                         <AlertDialogTitle className="flex items-center gap-2">
-                            <Power className={`w-5 h-5 ${selectedPackage?.status === 'PUBLISHED' ? "text-orange-600" : "text-green-600"}`} />
-                            {selectedPackage?.status === 'PUBLISHED' ? "¿Desactivar paquete?" : "¿Activar paquete?"}
+                            <Power className={`w-5 h-5 ${selectedPackage?.status === 'ACTIVE' ? "text-orange-600" : "text-green-600"}`} />
+                            {selectedPackage?.status === 'ACTIVE' ? "¿Desactivar paquete?" : "¿Activar paquete?"}
                         </AlertDialogTitle>
                         <AlertDialogDescription>
-                            {selectedPackage?.status === 'PUBLISHED' ? (
+                            {selectedPackage?.status === 'ACTIVE' ? (
                                 <p>
                                     El paquete <strong>"{selectedPackage?.title}"</strong> dejará de estar disponible para los clientes.
                                 </p>
@@ -482,14 +474,14 @@ export default function PackagesPage() {
                         <AlertDialogAction
                             onClick={handleToggleConfirm}
                             disabled={isSubmitting}
-                            className={selectedPackage?.status === 'PUBLISHED' ? "bg-orange-600 hover:bg-orange-700" : "bg-green-600 hover:bg-green-700"}
+                            className={selectedPackage?.status === 'ACTIVE' ? "bg-orange-600 hover:bg-orange-700" : "bg-green-600 hover:bg-green-700"}
                         >
                             {isSubmitting ? (
                                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                             ) : (
                                 <Power className="w-4 h-4 mr-2" />
                             )}
-                            {selectedPackage?.status === 'PUBLISHED' ? "Desactivar" : "Activar"}
+                            {selectedPackage?.status === 'ACTIVE' ? "Desactivar" : "Activar"}
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>

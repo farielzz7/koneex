@@ -13,7 +13,8 @@ import {
     Bell,
     X,
     Clock,
-    CheckCircle
+    CheckCircle,
+    Search
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
@@ -51,6 +52,7 @@ export default function CalendarPage() {
     const [selectedReminder, setSelectedReminder] = useState<Reminder | null>(null)
     const [isEditMode, setIsEditMode] = useState(false)
     const [selectedDate, setSelectedDate] = useState<string>("")
+    const [searchQuery, setSearchQuery] = useState("")
     const [reminderForm, setReminderForm] = useState({
         title: "",
         description: "",
@@ -58,6 +60,20 @@ export default function CalendarPage() {
         type: "GENERAL",
         priority: "MEDIUM"
     })
+
+    // Filtered events and reminders based on search
+    const filteredEvents = events.filter(event =>
+        searchQuery === "" ||
+        event.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        event.package_title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        event.booking_code.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+
+    const filteredReminders = reminders.filter(reminder =>
+        searchQuery === "" ||
+        reminder.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (reminder.description && reminder.description.toLowerCase().includes(searchQuery.toLowerCase()))
+    )
 
     useEffect(() => {
         fetchTripEvents()
@@ -245,12 +261,12 @@ export default function CalendarPage() {
 
     const getEventsForDay = (day: number) => {
         const targetDate = new Date(year, month, day).toISOString().split('T')[0]
-        return events.filter(e => e.travel_date?.startsWith(targetDate))
+        return filteredEvents.filter(e => e.travel_date?.startsWith(targetDate))
     }
 
     const getRemindersForDay = (day: number) => {
         const targetDate = new Date(year, month, day).toISOString().split('T')[0]
-        return reminders.filter(r => r.reminder_date === targetDate)
+        return filteredReminders.filter(r => r.reminder_date === targetDate)
     }
 
     const previousMonth = () => {
@@ -410,6 +426,31 @@ END:VCALENDAR`
                         </button>
                     </Link>
                 </div>
+            </div>
+
+            {/* Search Bar */}
+            <div className="relative max-w-md">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <input
+                    type="text"
+                    placeholder="Buscar eventos, clientes, reservas..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-10 pr-10 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+                />
+                {searchQuery && (
+                    <button
+                        onClick={() => setSearchQuery("")}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                        <X className="w-4 h-4" />
+                    </button>
+                )}
+                {searchQuery && (
+                    <p className="text-xs text-muted-foreground mt-2">
+                        Mostrando {filteredEvents.length} eventos y {filteredReminders.length} recordatorios
+                    </p>
+                )}
             </div>
 
             {/* Calendar Navigation */}

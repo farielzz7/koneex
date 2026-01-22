@@ -37,71 +37,88 @@ export async function POST(request: Request) {
     try {
         const body = await request.json()
         const {
+            destination_id,
             title,
             slug,
-            subtitle,
-            product_type,
             description,
             short_description,
             duration_days,
             duration_nights,
+            price,
             currency_code,
-            from_price,
-            status,
-            confirmation_mode,
-            highlights,
+            rating,
+            group_size,
+            featured,
+            tags,
+            images,
             includes,
             excludes,
-            media // Array of { url, media_type, is_cover }
+            status,
+            itinerary // Array of days
         } = body
 
-        // 1. Crear el paquete base
+        // Generate slug if not provided
+        const packageSlug = slug || title
+            .toLowerCase()
+            .replace(/[^\w\s-]/g, '')
+            .replace(/\s+/g, '-')
+            .replace(/-+/g, '-')
+
+        // Create the package
         const { data: newPackage, error: pkgError } = await supabase
             .from('packages')
             .insert({
+                destination_id,
                 title,
-                slug: slug || title.toLowerCase().replace(/\s+/g, '-'),
-                subtitle,
-                product_type: product_type || 'HOTEL_PACKAGE',
+                slug: packageSlug,
                 description,
                 short_description,
-                duration_days,
-                duration_nights,
-                currency_code: currency_code || 'USD',
-                from_price: from_price || 0,
-                status: status || 'DRAFT',
-                confirmation_mode: confirmation_mode || 'ON_REQUEST',
-                highlights: highlights || [],
+                duration_days: duration_days || 1,
+                duration_nights: duration_nights || 0,
+                price: price || 0,
+                currency_code: currency_code || 'MXN',
+                rating: rating || 0,
+                reviews_count: 0,
+                group_size: group_size || 'Flexible',
+                featured: featured || false,
+                tags: tags || [],
+                images: images || [],
                 includes: includes || [],
-                excludes: excludes || []
+                excludes: excludes || [],
+                status: status || 'DRAFT'
             })
             .select()
             .single()
 
-        if (pkgError) throw pkgError
+        if (pkgError) {
+            console.error('Error creating package:', pkgError)
+            throw pkgError
+        }
 
-        // 2. Insertar media si existe
-        if (media && Array.isArray(media) && media.length > 0) {
-            const mediaToInsert = media.map((m, index) => ({
-                package_id: newPackage.id as number,
-                url: m.url,
-                media_type: m.media_type || 'IMAGE',
-                is_cover: m.is_cover || index === 0,
-                position: index
+        // Insert itinerary days if provided
+        if (itinerary && Array.isArray(itinerary) && itinerary.length > 0) {
+            const daysToInsert = itinerary.map((day: any, index: number) => ({
+                package_id: newPackage.id,
+                day_number: day.day_number || index + 1,
+                title: day.title,
+                description: day.description,
+                activities: day.activities || [],
+                order_index: index
             }))
 
-            const { error: mediaError } = await supabase
-                .from('package_media')
-                .insert(mediaToInsert as any)
+            const { error: daysError } = await supabase
+                .from('package_days')
+                .insert(daysToInsert)
 
-            if (mediaError) {
-                console.error("Error inserting media, but package was created:", mediaError)
+            if (daysError) {
+                console.error('Error inserting days:', daysError)
+                // Continue even if days fail
             }
         }
 
         return NextResponse.json(newPackage, { status: 201 })
     } catch (error) {
-        console.error("Error creating package:", error)
+        console.error('Error creating package:', error)
         return NextResponse.json(
             { error: `Error al crear paquete: ${error instanceof Error ? error.message : 'Error desconocido'}` },
             { status: 500 }
