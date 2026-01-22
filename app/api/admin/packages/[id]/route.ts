@@ -59,6 +59,7 @@ export async function PUT(
         const allowedFields = [
             'destination_id', 'title', 'slug', 'description', 'short_description',
             'duration_days', 'duration_nights', 'price', 'currency_code',
+            'price_single', 'price_double', 'price_triple', 'price_child', 'children_allowed',
             'rating', 'group_size', 'featured', 'tags', 'images',
             'includes', 'excludes', 'status'
         ]

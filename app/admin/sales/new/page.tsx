@@ -104,9 +104,9 @@ export default function NewSalePage() {
                 try {
                     const { data } = await supabase
                         .from("packages")
-                        .select("id, title, slug, status, duration")
+                        .select("id, title, slug, status, duration_days, duration_nights, price")
                         .ilike('title', `%${packageSearch}%`)
-                        .limit(20)
+                        .eq('status', 'ACTIVE').limit(20)
                     setPackageResults((data as any) || [])
                 } catch (e) {
                     console.error(e)
@@ -125,7 +125,7 @@ export default function NewSalePage() {
             travel_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // +30 days
             adults: 2,
             children: 0,
-            unit_price: 15000 // Default, TODO: fetch real price
+            unit_price: (pkg as any).price || 0
         }])
         setShowPackageModal(false)
         setPackageSearch("")

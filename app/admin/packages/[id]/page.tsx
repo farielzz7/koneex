@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowLeft, Save, Trash2, Plus, X, Loader2, Image as ImageIcon } from "lucide-react"
+import { ArrowLeft, Save, Plus, X, Loader2, Image as ImageIcon, DollarSign } from "lucide-react"
 import { toast } from "sonner"
 import Link from "next/link"
 
@@ -21,6 +21,11 @@ export default function EditPackagePage({ params }: { params: Promise<{ id: stri
         description: "",
         short_description: "",
         price: 0,
+        price_single: 0,
+        price_double: 0,
+        price_triple: 0,
+        price_child: 0,
+        children_allowed: true,
         currency_code: "MXN",
         duration_days: 1,
         duration_nights: 0,
@@ -53,6 +58,11 @@ export default function EditPackagePage({ params }: { params: Promise<{ id: stri
                 description: data.description || "",
                 short_description: data.short_description || "",
                 price: data.price || 0,
+                price_single: data.price_single || data.price || 0,
+                price_double: data.price_double || data.price || 0,
+                price_triple: data.price_triple || data.price || 0,
+                price_child: data.price_child || 0,
+                children_allowed: data.children_allowed !== false,
                 currency_code: data.currency_code || "MXN",
                 duration_days: data.duration_days || 1,
                 duration_nights: data.duration_nights || 0,
@@ -378,23 +388,15 @@ export default function EditPackagePage({ params }: { params: Promise<{ id: stri
 
                 {/* Columna Lateral */}
                 <div className="space-y-6">
-                    {/* Precio */}
+                    {/* Tarifas por Ocupación */}
                     <Card>
                         <CardHeader>
-                            <CardTitle>Precio</CardTitle>
+                            <CardTitle className="flex items-center gap-2">
+                                <DollarSign className="w-5 h-5" />
+                                Tarifas por Ocupación
+                            </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <div>
-                                <Label htmlFor="price">Precio Base</Label>
-                                <Input
-                                    id="price"
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    value={form.price}
-                                    onChange={(e) => setForm({ ...form, price: parseFloat(e.target.value) || 0 })}
-                                />
-                            </div>
                             <div>
                                 <Label htmlFor="currency">Moneda</Label>
                                 <select
@@ -403,10 +405,94 @@ export default function EditPackagePage({ params }: { params: Promise<{ id: stri
                                     onChange={(e) => setForm({ ...form, currency_code: e.target.value })}
                                     className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                                 >
-                                    <option value="MXN">MXN</option>
-                                    <option value="USD">USD</option>
-                                    <option value="EUR">EUR</option>
+                                    <option value="MXN">MXN - Peso Mexicano</option>
+                                    <option value="USD">USD - Dólar</option>
+                                    <option value="EUR">EUR - Euro</option>
                                 </select>
+                            </div>
+
+                            <div>
+                                <Label htmlFor="price_single">🛏️ Sencilla (1 persona)</Label>
+                                <Input
+                                    id="price_single"
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={form.price_single}
+                                    onChange={(e) => setForm({ ...form, price_single: parseFloat(e.target.value) || 0 })}
+                                    placeholder="0.00"
+                                />
+                            </div>
+
+                            <div>
+                                <Label htmlFor="price_double">🛏️🛏️ Doble (por persona)</Label>
+                                <Input
+                                    id="price_double"
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={form.price_double}
+                                    onChange={(e) => setForm({ ...form, price_double: parseFloat(e.target.value) || 0 })}
+                                    placeholder="0.00"
+                                />
+                            </div>
+
+                            <div>
+                                <Label htmlFor="price_triple">🛏️🛏️🛏️ Triple (por persona)</Label>
+                                <Input
+                                    id="price_triple"
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={form.price_triple}
+                                    onChange={(e) => setForm({ ...form, price_triple: parseFloat(e.target.value) || 0 })}
+                                    placeholder="0.00"
+                                />
+                            </div>
+
+                            <div className="pt-3 border-t space-y-3">
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={form.children_allowed}
+                                        onChange={(e) => setForm({ ...form, children_allowed: e.target.checked })}
+                                        className="w-4 h-4"
+                                    />
+                                    <span className="text-sm font-medium">👶 Acepta Menores</span>
+                                </label>
+
+                                {form.children_allowed && (
+                                    <div>
+                                        <Label htmlFor="price_child">Precio por Menor</Label>
+                                        <Input
+                                            id="price_child"
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            value={form.price_child}
+                                            onChange={(e) => setForm({ ...form, price_child: parseFloat(e.target.value) || 0 })}
+                                            placeholder="0.00"
+                                        />
+                                        <p className="text-xs text-muted-foreground mt-1">
+                                            Tarifa especial para menores
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="pt-3 border-t">
+                                <Label htmlFor="price">Precio Base (Desde...)</Label>
+                                <Input
+                                    id="price"
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={form.price}
+                                    onChange={(e) => setForm({ ...form, price: parseFloat(e.target.value) || 0 })}
+                                />
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    Usado para mostrar "desde $X" en listados
+                                </p>
                             </div>
                         </CardContent>
                     </Card>
@@ -422,8 +508,8 @@ export default function EditPackagePage({ params }: { params: Promise<{ id: stri
                                     key={s}
                                     onClick={() => setForm({ ...form, status: s as any })}
                                     className={`w-full py-2 px-4 rounded-lg border-2 transition-colors ${form.status === s
-                                        ? 'border-primary bg-primary text-white'
-                                        : 'border-gray-200 hover:border-gray-300'
+                                            ? 'border-primary bg-primary text-white'
+                                            : 'border-gray-200 hover:border-gray-300'
                                         }`}
                                 >
                                     {s === 'DRAFT' && '🟡 Borrador'}
