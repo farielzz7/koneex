@@ -16,7 +16,12 @@ export async function GET(
 
         const { data: pkg, error } = await supabase
             .from('packages')
-            .select('*')
+            .select(`
+                *,
+                availability:package_availability(*),
+                prices:package_prices(*),
+                destination:destinations(*)
+            `)
             .eq('id', pkgId)
             .single()
 

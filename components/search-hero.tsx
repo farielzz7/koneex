@@ -1,14 +1,120 @@
 "use client"
 
-import { useState } from "react"
-import { Search, MapPin, Users } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { DateRangePicker } from "@/components/date-range-picker"
+import { useState, useEffect } from "react"
+import Image from "next/image"
+
+interface HeroBanner {
+  id: string
+  title: string
+  image_url: string
+  link_url: string | null
+  is_active: boolean
+}
 
 export function SearchHero() {
-  const [searchType, setSearchType] = useState<"destino" | "experiencia">("destino")
+  const [banner, setBanner] = useState<HeroBanner | null>(null)
+  const [loading, setLoading] = useState(true)
 
+  useEffect(() => {
+    fetchActiveBanner()
+  }, [])
+
+  const fetchActiveBanner = async () => {
+    try {
+      const response = await fetch("/api/banners/active")
+      const data = await response.json()
+      setBanner(data.banner)
+    } catch (error) {
+      console.error("Error fetching active banner:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <section className="relative overflow-hidden bg-gradient-to-br from-danger/15 via-primary/15 to-warning/15 py-12 md:py-20">
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-10 left-10 w-40 h-40 rounded-full bg-danger blur-3xl animate-pulse"></div>
+          <div
+            className="absolute bottom-20 right-20 w-48 h-48 rounded-full bg-warning blur-3xl animate-pulse"
+            style={{ animationDelay: "1s" }}
+          ></div>
+          <div
+            className="absolute top-1/2 left-1/2 w-44 h-44 rounded-full bg-primary blur-3xl animate-pulse"
+            style={{ animationDelay: "2s" }}
+          ></div>
+        </div>
+        <div className="container mx-auto px-4 relative z-10">
+          <div className="h-48 flex items-center justify-center">
+            <p className="text-text-muted">Cargando...</p>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  // If there's an active banner, show with optimized responsive text overlay
+  if (banner) {
+    return (
+      <section className="relative overflow-hidden">
+        {/* Banner background - optimized heights for mobile */}
+        <div className="relative w-full h-[450px] sm:h-[500px] md:h-[550px] lg:h-[600px]">
+          <Image
+            src={banner.image_url || "/placeholder.svg"}
+            alt={banner.title}
+            fill
+            className="object-cover object-center"
+            priority
+            sizes="100vw"
+          />
+          {/* Gradient overlay - stronger on mobile for better readability */}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/35 to-black/55" />
+        </div>
+
+        {/* Text overlay - fully responsive with mobile-first approach */}
+        <div className="absolute inset-0 flex items-center justify-center px-3 sm:px-4">
+          <div className="w-full max-w-4xl mx-auto">
+            <div className="text-center space-y-3 sm:space-y-4">
+              {/* Title - optimized font sizes */}
+              <h1 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-display font-bold text-white drop-shadow-2xl leading-tight px-2">
+                Descubre tu próxima
+                <br className="xs:hidden" />
+                <span className="xs:inline"> </span>
+                <span className="inline-block text-yellow-300 drop-shadow-lg">aventura</span>
+              </h1>
+
+              {/* Description - scales down on mobile */}
+              <p className="text-sm xs:text-base sm:text-lg md:text-xl text-white/95 max-w-2xl mx-auto drop-shadow-lg px-4 leading-relaxed">
+                Explora destinos increíbles, vive experiencias únicas y crea recuerdos inolvidables
+              </p>
+
+              {/* Popular tags - responsive visibility and sizing */}
+              <div className="flex flex-wrap justify-center gap-1.5 sm:gap-2 mt-4 sm:mt-6 md:mt-8 px-2">
+                <span className="text-xs sm:text-sm text-white/90 font-medium self-center">Populares:</span>
+                {[
+                  { tag: "Playa", color: "border-primary hover:bg-primary" },
+                  { tag: "Montaña", color: "border-accent hover:bg-accent", hideOnSmall: true },
+                  { tag: "Europa", color: "border-danger hover:bg-danger" },
+                  { tag: "Todo Incluido", color: "border-warning hover:bg-warning", hideOnSmall: true },
+                  { tag: "Aventura", color: "border-secondary hover:bg-secondary" },
+                ].map(({ tag, color, hideOnSmall }) => (
+                  <button
+                    key={tag}
+                    className={`${hideOnSmall ? 'hidden xs:inline-block' : 'inline-block'} px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full bg-white/95 backdrop-blur-sm text-xs sm:text-sm font-medium transition-all shadow-md border-2 ${color} hover:text-white hover:scale-105 active:scale-95`}
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  // Fallback: Show original content when no active banner
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-danger/15 via-primary/15 to-warning/15 py-12 md:py-20">
       <div className="absolute inset-0 opacity-10">
@@ -24,7 +130,7 @@ export function SearchHero() {
       </div>
 
       <div className="container mx-auto px-4 relative z-10">
-        <div className="text-center mb-8 md:mb-12">
+        <div className="text-center">
           <h1 className="text-4xl md:text-6xl font-display font-bold mb-4 text-balance">
             Descubre tu próxima
             <span className="text-gradient"> aventura</span>
@@ -34,69 +140,7 @@ export function SearchHero() {
           </p>
         </div>
 
-        <div className="flex justify-center gap-2 mb-6">
-          <Button
-            variant={searchType === "destino" ? "default" : "outline"}
-            onClick={() => setSearchType("destino")}
-            className={
-              searchType === "destino" ? "rounded-full bg-gradient-toucan hover:opacity-90" : "rounded-full border-2"
-            }
-          >
-            <MapPin className="w-4 h-4 mr-2" />
-            Buscar Destino
-          </Button>
-          <Button
-            variant={searchType === "experiencia" ? "default" : "outline"}
-            onClick={() => setSearchType("experiencia")}
-            className={
-              searchType === "experiencia"
-                ? "rounded-full bg-gradient-toucan hover:opacity-90"
-                : "rounded-full border-2"
-            }
-          >
-            <Search className="w-4 h-4 mr-2" />
-            Buscar Experiencia
-          </Button>
-        </div>
-
-        <div className="max-w-5xl mx-auto bg-white rounded-2xl shadow-2xl p-4 md:p-6 border-4 border-primary/20">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-            <div className="md:col-span-4">
-              <label className="text-sm font-semibold text-text mb-2 block">
-                {searchType === "destino" ? "Destino" : "Experiencia"}
-              </label>
-              <div className="relative">
-                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-primary" />
-                <Input
-                  placeholder={searchType === "destino" ? "ej. Cancún, París" : "ej. Buceo, Safari"}
-                  className="pl-10 border-2 h-11"
-                />
-              </div>
-            </div>
-
-            <div className="md:col-span-4">
-              <label className="text-sm font-semibold text-text mb-2 block">Fechas de viaje</label>
-              <DateRangePicker />
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="text-sm font-semibold text-text mb-2 block">Viajeros</label>
-              <div className="relative">
-                <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-accent" />
-                <Input type="number" placeholder="2" min="1" className="pl-10 border-2 h-11" />
-              </div>
-            </div>
-
-            <div className="md:col-span-2 flex items-end">
-              <Button className="w-full h-11 bg-gradient-toucan hover:opacity-90 font-semibold">
-                <Search className="w-5 h-5 mr-2" />
-                Buscar
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap justify-center gap-2 mt-6">
+        <div className="flex flex-wrap justify-center gap-2 mt-8">
           <span className="text-sm text-text-muted font-medium">Populares:</span>
           {[
             { tag: "Playa", color: "border-primary hover:bg-primary hover:text-white" },

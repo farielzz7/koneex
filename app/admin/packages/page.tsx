@@ -227,7 +227,7 @@ export default function PackagesPage() {
                         <FileDown className="w-4 h-4" />
                         Exportar CSV
                     </Button>
-                    <Link href="/admin/packages/new">
+                    <Link href="/admin/packages/wizard">
                         <Button className="gap-2">
                             <Plus className="w-4 h-4" />
                             Nuevo Paquete
@@ -275,7 +275,7 @@ export default function PackagesPage() {
                                     : "Comienza creando tu primer paquete de viaje"}
                             </p>
                             {!searchTerm && (
-                                <Link href="/admin/packages/new">
+                                <Link href="/admin/packages/wizard">
                                     <Button>
                                         <Plus className="w-4 h-4 mr-2" />
                                         Crear Primer Paquete

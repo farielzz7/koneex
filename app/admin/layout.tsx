@@ -28,56 +28,50 @@ import {
     Loader2,
     LogOut,
     Plus,
+    Clock,
+    CheckCircle2,
 } from "lucide-react"
 import { useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 
 const navigation = [
     {
-        title: "Principal",
+        title: "Inicio",
         items: [
             { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
+            { name: "Calendario", href: "/admin/sales/calendar", icon: Calendar },
         ]
     },
     {
         title: "Ventas",
         items: [
-            { name: "Dashboard", href: "/admin/sales", icon: LayoutDashboard },
-            { name: "Calendario", href: "/admin/sales/calendar", icon: Calendar },
+            { name: "Compras", href: "/admin/orders", icon: ShoppingCart },
+            { name: "Pendientes", href: "/admin/orders?status=PENDING_PAYMENT", icon: Clock },
+            { name: "Confirmadas", href: "/admin/orders?status=CONFIRMED", icon: CheckCircle2 },
             { name: "Nueva Venta", href: "/admin/sales/new", icon: Plus },
         ]
     },
     {
-        title: "Catálogo",
+        title: "Estructura",
         items: [
             { name: "Destinos", href: "/admin/geography", icon: Globe },
             { name: "Paquetes", href: "/admin/packages", icon: Package },
-            { name: "Salidas", href: "/admin/departures", icon: Calendar },
-            { name: "Servicios", href: "/admin/services", icon: Briefcase },
             { name: "Hoteles", href: "/admin/hotels", icon: Hotel },
             { name: "Aerolíneas", href: "/admin/airlines", icon: Plane },
-            { name: "Proveedores", href: "/admin/providers", icon: Building2 },
-            { name: "Promociones", href: "/admin/promotions", icon: Tag },
         ]
     },
     {
-        title: "Clientes",
+        title: "Usuarios",
         items: [
             { name: "Clientes", href: "/admin/customers", icon: User },
+            { name: "Staff", href: "/admin/users", icon: Users },
         ]
     },
     {
-        title: "Contenido",
+        title: "Web",
         items: [
             { name: "Banners", href: "/admin/content/banners", icon: Image },
             { name: "Testimonios", href: "/admin/content/testimonials", icon: MessageSquare },
-            { name: "Redes Sociales", href: "/admin/content/social-testimonials", icon: MessageSquare },
-        ]
-    },
-    {
-        title: "Configuración",
-        items: [
-            { name: "Usuarios", href: "/admin/users", icon: Users },
             { name: "Ajustes", href: "/admin/settings", icon: Settings },
         ]
     }

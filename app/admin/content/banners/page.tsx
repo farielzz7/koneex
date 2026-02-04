@@ -93,13 +93,13 @@ export default function BannersPage() {
         const filePath = `banners/${fileName}`
 
         const { error: uploadError } = await supabase.storage
-            .from('media')
+            .from('hero-banners')
             .upload(filePath, file)
 
         if (uploadError) throw uploadError
 
         const { data } = supabase.storage
-            .from('media')
+            .from('hero-banners')
             .getPublicUrl(filePath)
 
         return data.publicUrl
@@ -129,7 +129,11 @@ export default function BannersPage() {
             }
 
             const bannerData = {
-                ...formData,
+                title: formData.title,
+                link_url: "",
+                position: "HOME_HERO",
+                is_active: true,
+                sort_order: 0,
                 image_url: imageUrl
             }
 
@@ -209,12 +213,23 @@ export default function BannersPage() {
 
     const toggleActive = async (banner: Banner) => {
         try {
+            // If activating this banner, deactivate all others first
+            if (!banner.is_active) {
+                await supabase
+                    .from("banners")
+                    .update({ is_active: false })
+                    .eq("position", "HOME_HERO")
+            }
+
+            // Toggle this banner
             const { error } = await supabase
                 .from("banners")
                 .update({ is_active: !banner.is_active })
                 .eq("id", banner.id)
 
             if (error) throw error
+
+            toast.success(banner.is_active ? "Banner desactivado" : "Banner activado")
             loadBanners()
         } catch (error) {
             console.error(error)
@@ -296,10 +311,17 @@ export default function BannersPage() {
                                         <button
                                             onClick={() => toggleActive(banner)}
                                             className={cn(
-                                                "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium cursor-pointer",
-                                                banner.is_active ? "bg-green-100 text-green-800 hover:bg-green-200" : "bg-gray-100 text-gray-800 hover:bg-gray-200"
+                                                "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer transition-all",
+                                                banner.is_active
+                                                    ? "bg-green-100 text-green-800 hover:bg-green-200 ring-2 ring-green-500"
+                                                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                                             )}
+                                            title={banner.is_active ? "Click para desactivar" : "Click para activar"}
                                         >
+                                            <span className={cn(
+                                                "w-2 h-2 rounded-full",
+                                                banner.is_active ? "bg-green-500 animate-pulse" : "bg-gray-400"
+                                            )} />
                                             {banner.is_active ? 'Activo' : 'Inactivo'}
                                         </button>
                                     </td>
@@ -343,14 +365,32 @@ export default function BannersPage() {
                             {/* Image Upload */}
                             <div>
                                 <label className="block text-sm font-medium mb-2">Imagen *</label>
-                                <div className="border-2 border-dashed rounded-lg p-4">
+                                <div
+                                    className="border-2 border-dashed rounded-lg p-4 cursor-pointer hover:border-primary/50 transition-colors"
+                                    onDragOver={(e) => {
+                                        e.preventDefault()
+                                        e.stopPropagation()
+                                    }}
+                                    onDrop={(e) => {
+                                        e.preventDefault()
+                                        e.stopPropagation()
+                                        const file = e.dataTransfer.files?.[0]
+                                        if (file && file.type.startsWith("image/")) {
+                                            setImageFile(file)
+                                        } else {
+                                            toast.error("Por favor arrastra una imagen válida")
+                                        }
+                                    }}
+                                    onClick={() => document.getElementById('file-upload')?.click()}
+                                >
                                     {previewUrl ? (
                                         <div className="relative">
                                             {/* eslint-disable-next-line @next/next/no-img-element */}
                                             <img src={previewUrl} alt="Preview" className="w-full h-48 object-cover rounded" />
                                             <button
                                                 type="button"
-                                                onClick={() => {
+                                                onClick={(e) => {
+                                                    e.stopPropagation()
                                                     setImageFile(null)
                                                     setPreviewUrl(editingBanner?.image_url || "")
                                                 }}
@@ -360,18 +400,19 @@ export default function BannersPage() {
                                             </button>
                                         </div>
                                     ) : (
-                                        <label className="flex flex-col items-center justify-center cursor-pointer h-48">
+                                        <div className="flex flex-col items-center justify-center h-48">
                                             <Upload className="w-12 h-12 text-gray-400 mb-2" />
-                                            <span className="text-sm text-gray-600">Click para subir imagen</span>
+                                            <span className="text-sm text-gray-600">Haz clic o arrastra una imagen aquí</span>
                                             <span className="text-xs text-gray-400 mt-1">PNG, JPG hasta 5MB</span>
-                                            <input
-                                                type="file"
-                                                accept="image/*"
-                                                onChange={handleFileChange}
-                                                className="hidden"
-                                            />
-                                        </label>
+                                        </div>
                                     )}
+                                    <input
+                                        id="file-upload"
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={handleFileChange}
+                                        className="hidden"
+                                    />
                                 </div>
                             </div>
 
@@ -386,57 +427,6 @@ export default function BannersPage() {
                                     placeholder="Ej: Promoción Primavera 2024"
                                     required
                                 />
-                            </div>
-
-                            {/* Link URL */}
-                            <div>
-                                <label className="block text-sm font-medium mb-1">Enlace (URL)</label>
-                                <input
-                                    type="url"
-                                    value={formData.link_url}
-                                    onChange={(e) => setFormData({ ...formData, link_url: e.target.value })}
-                                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                                    placeholder="https://ejemplo.com/promo"
-                                />
-                            </div>
-
-                            {/* Position */}
-                            <div>
-                                <label className="block text-sm font-medium mb-1">Posición</label>
-                                <select
-                                    value={formData.position}
-                                    onChange={(e) => setFormData({ ...formData, position: e.target.value })}
-                                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                                >
-                                    <option value="HOME_HERO">Home - Hero</option>
-                                    <option value="HOME_PROMO">Home - Promo</option>
-                                    <option value="FOOTER">Footer</option>
-                                    <option value="SIDEBAR">Sidebar</option>
-                                </select>
-                            </div>
-
-                            {/* Sort Order */}
-                            <div>
-                                <label className="block text-sm font-medium mb-1">Orden de visualización</label>
-                                <input
-                                    type="number"
-                                    value={formData.sort_order}
-                                    onChange={(e) => setFormData({ ...formData, sort_order: parseInt(e.target.value) || 0 })}
-                                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                                    placeholder="0"
-                                />
-                            </div>
-
-                            {/* Active */}
-                            <div className="flex items-center gap-2">
-                                <input
-                                    type="checkbox"
-                                    id="is_active"
-                                    checked={formData.is_active}
-                                    onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                                    className="w-4 h-4 text-primary focus:ring-primary border-gray-300 rounded"
-                                />
-                                <label htmlFor="is_active" className="text-sm font-medium">Banner activo</label>
                             </div>
 
                             {/* Actions */}
