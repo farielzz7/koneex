@@ -33,12 +33,12 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     title: {
-        fontSize: 20,
-        color: '#e11d48', // Unmistakable red (rose-600) to confirm update
+        fontSize: 22,
+        color: '#be123c', // Distinctive rose-700
         fontWeight: 'bold',
         marginBottom: 10,
         lineHeight: 1.4,
-        paddingLeft: 5, // Extra space for the first letter
+        paddingLeft: 10, // More space for the first letter
         letterSpacing: 0.5,
     },
     subtitle: {
