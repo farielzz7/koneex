@@ -11,7 +11,6 @@ const nextConfig = {
     config.resolve.alias.encoding = false;
     return config;
   },
-  transpilePackages: ['@react-pdf/renderer'],
   turbopack: {},
   experimental: {
     serverComponentsExternalPackages: ['@react-pdf/renderer'],
