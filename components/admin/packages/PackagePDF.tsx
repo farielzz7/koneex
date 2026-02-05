@@ -34,7 +34,7 @@ const styles = StyleSheet.create({
     },
     title: {
         fontSize: 20,
-        color: '#1a365d', // Deep blue to confirm visibility
+        color: '#e11d48', // Unmistakable red (rose-600) to confirm update
         fontWeight: 'bold',
         marginBottom: 10,
         lineHeight: 1.4,
@@ -187,7 +187,9 @@ export const PackagePDF = ({ data }: PackagePDFProps) => (
 
             {/* Title Section */}
             <View style={styles.titleSection}>
-                <Text style={styles.title}>{data.title}</Text>
+                <View style={{ paddingHorizontal: 15, paddingVertical: 5 }}>
+                    <Text style={styles.title}>{data.title}</Text>
+                </View>
                 {data.destination && (
                     <Text style={styles.destination}>📍 {data.destination}</Text>
                 )}
