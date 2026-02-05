@@ -2,20 +2,43 @@
 
 import { useState, useEffect, use } from "react"
 import { useRouter } from "next/navigation"
+import dynamic from "next/dynamic"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowLeft, Save, Plus, X, Loader2, Image as ImageIcon, DollarSign } from "lucide-react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { ArrowLeft, Save, Plus, X, Loader2, Image as ImageIcon, DollarSign, FileDown, Eye } from "lucide-react"
+// import { PDFDownloadLink } from "@react-pdf/renderer" // Removed direct import
+// import { PackagePDF } from "@/components/admin/packages/PackagePDF" // Removed direct import
 import { toast } from "sonner"
 import Link from "next/link"
+
+const PackagePDFPreview = dynamic(
+    () => import("@/components/admin/packages/PackagePDFPreview"),
+    {
+        ssr: false,
+        loading: () => <div className="flex items-center justify-center h-[500px]"><Loader2 className="w-8 h-8 animate-spin" /></div>,
+    }
+)
+
+const PackagePDFExport = dynamic(
+    () => import("@/components/admin/packages/PackagePDFExport"),
+    {
+        ssr: false,
+        loading: () => <Button variant="outline" disabled className="gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Preparando PDF...</Button>,
+    }
+)
+
+
 
 export default function EditPackagePage({ params }: { params: Promise<{ id: string }> }) {
     const resolvedParams = use(params)
     const router = useRouter()
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
+    const [showPreview, setShowPreview] = useState(false)
     const [form, setForm] = useState({
         title: "",
         description: "",
@@ -37,14 +60,18 @@ export default function EditPackagePage({ params }: { params: Promise<{ id: stri
         includes: [] as string[],
         excludes: [] as string[],
         status: "DRAFT" as 'DRAFT' | 'ACTIVE' | 'INACTIVE',
+        destination: "",
     })
+
 
     const [newImageUrl, setNewImageUrl] = useState("")
     const [newTag, setNewTag] = useState("")
     const [newInclude, setNewInclude] = useState("")
     const [newExclude, setNewExclude] = useState("")
+    const [isClient, setIsClient] = useState(false)
 
     useEffect(() => {
+        setIsClient(true)
         fetchPackage()
     }, [resolvedParams.id])
 
@@ -74,6 +101,7 @@ export default function EditPackagePage({ params }: { params: Promise<{ id: stri
                 includes: data.includes || [],
                 excludes: data.excludes || [],
                 status: data.status || "DRAFT",
+                destination: data.destination?.name || "",
             })
         } catch (error) {
             toast.error("Error al cargar el paquete")
@@ -176,20 +204,50 @@ export default function EditPackagePage({ params }: { params: Promise<{ id: stri
                         <p className="text-muted-foreground">Modifica toda la información del paquete</p>
                     </div>
                 </div>
-                <Button onClick={handleSave} disabled={saving} className="gap-2">
-                    {saving ? (
+                <div className="flex gap-2">
+                    {isClient && (
                         <>
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                            Guardando...
-                        </>
-                    ) : (
-                        <>
-                            <Save className="w-4 h-4" />
-                            Guardar Cambios
+                            <Button
+                                variant="outline"
+                                onClick={() => setShowPreview(true)}
+                                className="gap-2"
+                            >
+                                <Eye className="w-4 h-4" />
+                                Vista Previa PDF
+                            </Button>
+
+                            <PackagePDFExport
+                                data={form}
+                                fileName={`${form.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_proposal.pdf`}
+                            />
                         </>
                     )}
-                </Button>
+                    <Button onClick={handleSave} disabled={saving} className="gap-2">
+                        {saving ? (
+                            <>
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                Guardando...
+                            </>
+                        ) : (
+                            <>
+                                <Save className="w-4 h-4" />
+                                Guardar Cambios
+                            </>
+                        )}
+                    </Button>
+                </div>
             </div>
+
+            <Dialog open={showPreview} onOpenChange={setShowPreview}>
+                <DialogContent className="max-w-[90vw] h-[90vh] flex flex-col p-0">
+                    <DialogHeader className="px-6 py-4 border-b">
+                        <DialogTitle>Vista Previa del PDF</DialogTitle>
+                    </DialogHeader>
+                    <div className="flex-1 w-full h-full overflow-hidden">
+                        <PackagePDFPreview data={form} />
+                    </div>
+                </DialogContent>
+            </Dialog>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Columna Principal */}
@@ -508,8 +566,8 @@ export default function EditPackagePage({ params }: { params: Promise<{ id: stri
                                     key={s}
                                     onClick={() => setForm({ ...form, status: s as any })}
                                     className={`w-full py-2 px-4 rounded-lg border-2 transition-colors ${form.status === s
-                                            ? 'border-primary bg-primary text-white'
-                                            : 'border-gray-200 hover:border-gray-300'
+                                        ? 'border-primary bg-primary text-white'
+                                        : 'border-gray-200 hover:border-gray-300'
                                         }`}
                                 >
                                     {s === 'DRAFT' && '🟡 Borrador'}
