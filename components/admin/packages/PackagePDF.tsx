@@ -191,6 +191,7 @@ export const PackagePDF = ({ data }: PackagePDFProps) => (
                     <Text style={styles.title}>{data.title}</Text>
                 </View>
                 {data.destination && (
+
                     <Text style={styles.destination}>📍 {data.destination}</Text>
                 )}
                 {data.short_description && <Text style={styles.subtitle}>{data.short_description}</Text>}
